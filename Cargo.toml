@@ -15,6 +15,6 @@ uuid = { version = "1.15.0", features = ["v4"] }
 opt-level = 3
 codegen-units = 1
 lto = true
-panic = "abort"    # tested that Sentry can still report panics without "unwind"
+panic = "unwind"   # tested that Sentry can still report panics without "unwind", but we want to manage restarting ourselves
 strip = false      # false = keep main debug symbols so we get function names in Sentry, true = a bunch of `?`
 debug = 0          # remove debug details for size, could be (1) = func call line numbers, (2) = variables
