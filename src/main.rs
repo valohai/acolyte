@@ -1,3 +1,4 @@
+use libc::{SIGHUP, SIG_IGN};
 use std::time::Duration;
 use std::{env, os::unix::process::CommandExt, panic, process, thread};
 use tracing::{error, info, warn};
@@ -11,6 +12,8 @@ const RESTART_ENV_VAR: &str = "ACOLYTE_RESTART";
 const ACOLYTE_ID_ENV_VAR: &str = "ACOLYTE_ID";
 
 fn main() {
+    nohup();
+
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::registry()
         .with(filter)
@@ -86,6 +89,13 @@ fn main() {
         // exec failed, wouldn't reach here otherwise
         error!("Failed to restart Acolyte: {}", err);
         process::exit(1);
+    }
+}
+
+fn nohup() {
+    // Replicate what `nohup` command does; ignore SIGHUP (signal sent when terminal disconnects)
+    unsafe {
+        libc::signal(SIGHUP, SIG_IGN);
     }
 }
 
