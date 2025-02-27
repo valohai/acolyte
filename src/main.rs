@@ -10,12 +10,7 @@ use uuid::Uuid;
 fn main() {
     nohup();
 
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
-        .init();
+    init_logging();
 
     let acolyte_id = env::get_or_create_acolyte_id();
     let sentry_guard = init_sentry(&acolyte_id);
@@ -76,6 +71,15 @@ fn nohup() {
     unsafe {
         libc::signal(SIGHUP, SIG_IGN);
     }
+}
+
+fn init_logging() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry_tracing::layer())
+        .init();
 }
 
 fn init_sentry(acolyte_id: &Uuid) -> Option<sentry::ClientInitGuard> {
