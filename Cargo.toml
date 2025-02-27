@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+# reqwest instead of libcurl, rustls instead of expecting openssl, the rest are Sentry features we want
+sentry = { version = "0.36.0", default-features = false, features = ["tracing", "reqwest", "rustls", "backtrace", "panic"] }
+sentry-tracing = "0.36.0"
+uuid = { version = "1.15.0", features = ["v4"] }
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = true
+panic = "abort"    # tested that Sentry can still report panics without "unwind"
+strip = false      # false = keep main debug symbols so we get function names in Sentry, true = a bunch of `?`
+debug = 0          # remove debug details for size, could be (1) = func call line numbers, (2) = variables
