@@ -1,11 +1,13 @@
 use std::thread;
-use std::time::Duration;
 use tracing::info;
 
+pub mod env;
+
 pub fn run_acolyte() {
+    let stat_interval = env::get_stat_interval();
     loop {
         // imitate work...
         info!("Acolyte: For Ner'zhul!");
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(stat_interval);
     }
 }
