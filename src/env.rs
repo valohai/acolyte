@@ -37,3 +37,10 @@ pub fn get_sentry_dsn() -> Option<String> {
 pub fn get_cluster_name() -> String {
     env::var("CLUSTER_NAME").unwrap_or_else(|_| "Unknown".to_string())
 }
+
+pub fn get_cpu_sample_ms() -> u64 {
+    env::var("ACOLYTE_CPU_SAMPLE_RATE_MS")
+        .ok()
+        .and_then(|val| val.parse::<u64>().ok())
+        .unwrap_or(100)
+}

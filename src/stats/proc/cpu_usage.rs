@@ -1,3 +1,4 @@
+use crate::env;
 use crate::stats::proc::ProcProvider;
 use crate::stats::CpuUsageValue;
 use std::io;
@@ -9,7 +10,7 @@ pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<CpuUsageValue>
     // to calculate the CPU usage over a time interval (delta),
     // 100 ms seems common
     let initial = get_total_cpu_jiffies(provider)?;
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(env::get_cpu_sample_ms()));
     let current = get_total_cpu_jiffies(provider)?;
 
     let cpu_usage = calculate_cpu_usage(&initial, &current);

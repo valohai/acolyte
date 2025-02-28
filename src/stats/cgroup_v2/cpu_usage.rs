@@ -1,3 +1,4 @@
+use crate::env;
 use crate::stats::cgroup_v2::CgroupV2Provider;
 use crate::stats::CpuUsageValue;
 use std::io;
@@ -9,7 +10,7 @@ pub fn get_cpu_usage<P: CgroupV2Provider>(provider: &P) -> io::Result<CpuUsageVa
     let start_time = Instant::now();
 
     let initial = get_cpu_usage_usec(provider)?;
-    std::thread::sleep(Duration::from_millis(100));
+    std::thread::sleep(Duration::from_millis(env::get_cpu_sample_ms()));
     let current = get_cpu_usage_usec(provider)?;
 
     // wall-clock time between the two readings
