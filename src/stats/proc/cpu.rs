@@ -49,23 +49,34 @@ fn get_total_cpu_jiffies<R: ProcProvider>(provider: &R) -> io::Result<Vec<u64>> 
 
 /// Calculate CPU usage based on two sequential readings from `/proc/stat`
 fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 {
-    // there are like 10 different values how CPU spent it's time, but
-    // we are _mainly_ interested in the idle time, which is the 4th value,
-    // don't be so strict about the other values
-    // https://man7.org/linux/man-pages/man5/proc_stat.5.html
-    const IDLE_IDX: usize = 3;
-    const MIN_REQUIRED_LEN: usize = IDLE_IDX + 1;
+    // From: https://man7.org/linux/man-pages/man5/proc_stat.5.html
+    // The values in order are: user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice
+    const IDLE_IDX: usize = 3; // idle is the 4th field
+    const IOWAIT_IDX: usize = 4; // iowait is the 5th field
+    const MIN_REQUIRED_LEN: usize = IOWAIT_IDX + 1;
 
     if initial_jiffies.len() < MIN_REQUIRED_LEN {
-        debug!("Initial CPU reading is incomplete");
+        debug!(
+            "Initial CPU reading is incomplete: expected at least {} fields, got {}",
+            MIN_REQUIRED_LEN,
+            initial_jiffies.len()
+        );
         return 0.0;
     }
     if current_jiffies.len() < MIN_REQUIRED_LEN {
-        debug!("Current CPU reading is incomplete");
+        debug!(
+            "Current CPU reading is incomplete: expected at least {} fields, got {}",
+            MIN_REQUIRED_LEN,
+            current_jiffies.len()
+        );
         return 0.0;
     }
     if initial_jiffies.len() != current_jiffies.len() {
-        debug!("Initial and current CPU readings have different lengths");
+        debug!(
+            "Initial and current CPU readings have different lengths: {} vs {}",
+            initial_jiffies.len(),
+            current_jiffies.len()
+        );
         return 0.0;
     }
 
@@ -79,9 +90,12 @@ fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 
         return 0.0;
     }
 
-    let idle_delta = current_jiffies[IDLE_IDX].saturating_sub(initial_jiffies[IDLE_IDX]);
+    // calculate "vacant" time (idle + iowait)
+    let initial_vacancy = initial_jiffies[IDLE_IDX] + initial_jiffies[IOWAIT_IDX];
+    let current_vacancy = current_jiffies[IDLE_IDX] + current_jiffies[IOWAIT_IDX];
+    let vacant_delta = current_vacancy.saturating_sub(initial_vacancy);
 
-    let cpu_usage = 1.0 - (idle_delta as f64 / total_delta as f64);
+    let cpu_usage = 1.0 - (vacant_delta as f64 / total_delta as f64);
 
     cpu_usage
 }
@@ -139,16 +153,18 @@ mod tests {
 
     #[test]
     fn test_calculate_cpu_usage() {
-        //                                v idle time at index 3
+        //                                | idle
+        //                                v    v iowait
         let initial = vec![100, 200, 300, 400, 500]; // = 1500 jiffies
         let current = vec![110, 220, 330, 440, 550]; // = 1650 jiffies
 
         let usage = calculate_cpu_usage(&initial, &current);
 
-        // 1650 - 1500 =      150 total spent time (delta)
-        //  440 - 400  =       40 time spent idle (delta)
-        //   40 / 150  =   0.2667 idle%
-        //  1.0 - 0.2667 = 0.7333 usage%
-        assert!((usage - 0.7333).abs() < 0.0001);
+        // 1650 - 1500 =    150 total time spent (delta)
+        //  440 - 400  =     40 time spent idle (delta)
+        //  550 - 500  =     50 time spent waiting for I/O (delta)
+        //   90 / 150  =    0.6 idle%
+        //  1.0 - 0.6 =     0.4 usage%
+        assert_eq!(usage, 0.4);
     }
 }
