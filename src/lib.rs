@@ -2,36 +2,30 @@ pub mod env;
 pub mod stats;
 
 use std::thread;
-use tracing::{debug, info};
+use tracing::info;
 
 pub fn run_acolyte() {
     let stat_interval = env::get_stat_interval();
     loop {
-        match stats::get_cpu_stats() {
-            Ok(cpu_stats) => {
-                info!(
-                    "CPU: {} of {} CPUs",
-                    cpu_stats.cpu_usage, cpu_stats.num_cpus
-                ); // TODO: save to file, don't print
-            }
-            Err(e) => {
-                debug!("Failed to get CPU stats: {}", e);
-            }
-        }
+        let num_cpus = stats::get_num_cpus().unwrap_or(1.0);
+        let cpu_usage = stats::get_cpu_usage().unwrap_or(0.0);
+        let mem_usage_kb = stats::get_memory_usage_kb().unwrap_or(0);
+        let mem_total_kb = stats::get_memory_total_kb().unwrap_or(0);
 
-        match stats::get_memory_stats() {
-            Ok(mem_stats) => {
-                info!(
-                    "Memory: {} KB used of {} KB total ({:.2}%)",
-                    mem_stats.memory_usage_kb,
-                    mem_stats.memory_total_kb,
-                    (mem_stats.memory_usage_kb as f64 / mem_stats.memory_total_kb as f64) * 100.0
-                ); // TODO: save to file, don't print
-            }
-            Err(e) => {
-                debug!("Failed to get memory stats: {}", e);
-            }
-        }
+        // scale the cpu usage by the number of cpus
+        // so that 100% cpu usage on a 4 core machine is 4.0 etc.
+        let normalized_cpu_usage = cpu_usage * num_cpus;
+
+        let cpu_percent = cpu_usage * 100.0;
+        let memory_percent = (mem_usage_kb as f64 / mem_total_kb as f64) * 100.0;
+
+        let mem_usage_mb = mem_usage_kb / 1024;
+        let mem_total_mb = mem_total_kb / 1024;
+
+        info!(
+            "CPU: {:.2} / {} ({:.2}%), Memory: {} MB / {} MB ({:.2}%)",
+            normalized_cpu_usage, num_cpus, cpu_percent, mem_usage_mb, mem_total_mb, memory_percent
+        );
 
         thread::sleep(stat_interval);
     }

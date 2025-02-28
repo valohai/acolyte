@@ -1,7 +1,8 @@
-mod cpu;
-mod mem;
+mod cpu_usage;
+mod memory;
+mod num_cpus;
 
-use crate::stats::{utils, CpuStats, MemoryStats, ResourceType, SystemStatsSource};
+use crate::stats::{utils, ResourceType, SystemStatsSource};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -10,7 +11,7 @@ use tracing::debug;
 #[cfg(test)]
 use mockall::automock;
 
-/// A source of system stats that reads from the `/proc` filesystem (by default).
+/// A source of system stats that reads values like `/proc` provides.
 pub struct ProcSource<P: ProcProvider> {
     provider: P,
 }
@@ -22,14 +23,26 @@ impl<P: ProcProvider> ProcSource<P> {
 }
 
 impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
-    fn get_cpu_stats(&self) -> io::Result<CpuStats> {
-        debug!("Using /proc for CPU stats");
-        cpu::get_cpu_stats(&self.provider)
+    fn get_num_cpus(&self) -> io::Result<f64> {
+        debug!("Using /proc for the number of CPUs");
+        num_cpus::get_num_cpus(&self.provider)
     }
 
-    fn get_memory_stats(&self) -> io::Result<MemoryStats> {
-        debug!("Using /proc for memory stats");
-        mem::get_memory_stats(&self.provider)
+    fn get_cpu_usage(&self) -> io::Result<f64> {
+        debug!("Using /proc for CPU usage");
+        cpu_usage::get_cpu_usage(&self.provider)
+    }
+
+    fn get_memory_usage_kb(&self) -> io::Result<u64> {
+        debug!("Using /proc for memory usage kb");
+        let (memory_usage_kb, _) = memory::get_memory_usage_and_total_kb(&self.provider)?;
+        Ok(memory_usage_kb)
+    }
+
+    fn get_memory_total_kb(&self) -> io::Result<u64> {
+        debug!("Using /proc for memory total kb");
+        let (_, memory_total_kb) = memory::get_memory_usage_and_total_kb(&self.provider)?;
+        Ok(memory_total_kb)
     }
 
     fn is_available_for(&self, resource_type: &ResourceType) -> bool {
@@ -43,7 +56,7 @@ impl ProcSource<ProcFilesystemReader> {
     }
 }
 
-/// The default proc value provider, reads from the `/proc` filesystem.
+/// The proc value provider that reads from a target filesystem like `/proc`.
 pub struct ProcFilesystemReader {
     proc_path: PathBuf,
 }
@@ -76,11 +89,11 @@ impl ProcProvider for ProcFilesystemReader {
     }
 
     fn is_available_for(&self, resource_type: &ResourceType) -> bool {
-        let patch_to_check = match resource_type {
-            ResourceType::CPU => self.proc_stat_path(),
-            ResourceType::Memory => self.proc_meminfo_path(),
+        let path_to_check = match resource_type {
+            ResourceType::NumCpus | ResourceType::CpuUsage => self.proc_stat_path(),
+            ResourceType::MemoryUsageKb | ResourceType::MemoryTotalKb => self.proc_meminfo_path(),
         };
-        utils::is_file_readable(&patch_to_check)
+        utils::is_file_readable(&path_to_check)
     }
 }
 

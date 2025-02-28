@@ -1,10 +1,9 @@
 use crate::stats::proc::ProcProvider;
-use crate::stats::CpuStats;
 use std::io;
 use tracing::{debug, warn};
 
-/// Get CPU stats from the `/proc` filesystem (host-wide)
-pub fn get_cpu_stats<R: ProcProvider>(provider: &R) -> io::Result<CpuStats> {
+/// Get CPU usage (% of all available CPUS) from the `/proc` filesystem (host-wide)
+pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<f64> {
     // values are cumulative, we need to read the values twice
     // to calculate the CPU usage over a time interval (delta),
     // 100 ms seems common
@@ -12,18 +11,7 @@ pub fn get_cpu_stats<R: ProcProvider>(provider: &R) -> io::Result<CpuStats> {
     std::thread::sleep(std::time::Duration::from_millis(100));
     let current = get_total_cpu_jiffies(provider)?;
 
-    let usage_percentage = calculate_cpu_usage(&initial, &current);
-    let num_cpus = get_cpu_count(provider)? as f64; // NB: Kubernetes cores can be fractional
-
-    // scale the usage by the number of CPUs so that:
-    // 1.0 = 100% of a single CPU
-    // 2.0 = 100% of two CPUs, etc.
-    let cpu_usage = usage_percentage * num_cpus;
-
-    Ok(CpuStats {
-        cpu_usage,
-        num_cpus,
-    })
+    Ok(calculate_cpu_usage(&initial, &current))
 }
 
 fn get_total_cpu_jiffies<R: ProcProvider>(provider: &R) -> io::Result<Vec<u64>> {
@@ -100,44 +88,13 @@ fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 
     cpu_usage
 }
 
-fn get_cpu_count<R: ProcProvider>(reader: &R) -> io::Result<u32> {
-    let lines = reader.get_proc_stat()?;
-
-    // skip the line with `cpu` without a number, that is the sum of all CPUs
-    let count = lines
-        .iter()
-        .filter(|line| line.starts_with("cpu") && !line.starts_with("cpu "))
-        .count() as u32;
-
-    Ok(count)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::stats::proc::MockProcProvider;
 
     #[test]
-    fn test_get_cpu_count() {
-        let mut mock_provider = MockProcProvider::new();
-        mock_provider.expect_get_proc_stat().returning(|| {
-            Ok(vec![
-                "cpu  1016173 37036 291183 13457001 28111 0 9511 0 0 0".to_string(),
-                "cpu0 198607 6779 63175 1870456 4023 0 4291 0 0 0".to_string(),
-                "cpu1 194475 6677 61910 1868513 7087 0 2083 0 0 0".to_string(),
-                "cpu2 189167 6556 58132 1870369 5846 0 1428 0 0 0".to_string(),
-                "cpu3 196374 6876 58228 1864699 4843 0 1002 0 0 0".to_string(),
-                "intr 60444506 7 0 0 0 4517864 0 0 0 1 0 0 0 0 0".to_string(),
-                "ctxt 146138886".to_string(),
-                "btime 1708345562".to_string(),
-            ])
-        });
-
-        assert_eq!(get_cpu_count(&mock_provider).unwrap(), 4);
-    }
-
-    #[test]
-    fn test_read_cpu_stat() {
+    fn test_get_total_cpu_jiffies() {
         let mut mock_provider = MockProcProvider::new();
         mock_provider.expect_get_proc_stat().returning(|| {
             Ok(vec![
@@ -163,7 +120,7 @@ mod tests {
         // 1650 - 1500 =    150 total time spent (delta)
         //  440 - 400  =     40 time spent idle (delta)
         //  550 - 500  =     50 time spent waiting for I/O (delta)
-        //   90 / 150  =    0.6 idle%
+        //   90 / 150  =    0.6 (idle + iowait)%
         //  1.0 - 0.6 =     0.4 usage%
         assert_eq!(usage, 0.4);
     }

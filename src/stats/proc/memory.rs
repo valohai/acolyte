@@ -1,19 +1,18 @@
 use crate::stats::proc::ProcProvider;
-use crate::stats::MemoryStats;
 use std::io;
 
-/// Get memory stats from the `/proc` filesystem (host-wide)
-pub fn get_memory_stats<R: ProcProvider>(reader: &R) -> io::Result<MemoryStats> {
-    let lines = reader.get_proc_meminfo()?;
+/// Get currently used and total available memory from the `/proc` filesystem (host-wide)
+pub fn get_memory_usage_and_total_kb<R: ProcProvider>(provider: &R) -> io::Result<(u64, u64)> {
+    let lines = provider.get_proc_meminfo()?;
 
     let mut memory_total_kb = 0;
     let mut available_kb = 0;
 
     for line in &lines {
-        if line.starts_with("MemTotal:") {
-            memory_total_kb = parse_proc_meminfo_value(&line);
-        } else if line.starts_with("MemAvailable:") {
+        if line.starts_with("MemAvailable:") {
             available_kb = parse_proc_meminfo_value(&line);
+        } else if line.starts_with("MemTotal:") {
+            memory_total_kb = parse_proc_meminfo_value(&line);
         }
 
         if memory_total_kb > 0 && available_kb > 0 {
@@ -27,10 +26,7 @@ pub fn get_memory_stats<R: ProcProvider>(reader: &R) -> io::Result<MemoryStats> 
         0
     };
 
-    Ok(MemoryStats {
-        memory_usage_kb,
-        memory_total_kb,
-    })
+    Ok((memory_usage_kb, memory_total_kb))
 }
 
 fn parse_proc_meminfo_value(line: &str) -> u64 {
@@ -49,8 +45,8 @@ mod tests {
 
     #[test]
     fn test_get_memory_stats_normal() -> io::Result<()> {
-        let mut mock = MockProcProvider::new();
-        mock.expect_get_proc_meminfo().returning(|| {
+        let mut mock_provider = MockProcProvider::new();
+        mock_provider.expect_get_proc_meminfo().returning(|| {
             Ok(vec![
                 "MemTotal:        8048836 kB".to_string(),
                 "MemFree:         2000000 kB".to_string(),
@@ -58,10 +54,9 @@ mod tests {
             ])
         });
 
-        let stats = get_memory_stats(&mock)?;
-
-        assert_eq!(stats.memory_total_kb, 8048836);
-        assert_eq!(stats.memory_usage_kb, 4029418);
+        let (memory_usage_kb, memory_total_kb) = get_memory_usage_and_total_kb(&mock_provider)?;
+        assert_eq!(memory_total_kb, 8048836);
+        assert_eq!(memory_usage_kb, 4029418);
         Ok(())
     }
 
@@ -76,10 +71,9 @@ mod tests {
             ])
         });
 
-        let stats = get_memory_stats(&mock_provider)?;
-
-        assert_eq!(stats.memory_total_kb, 8048836);
-        assert_eq!(stats.memory_usage_kb, 8048836);
+        let (memory_usage_kb, memory_total_kb) = get_memory_usage_and_total_kb(&mock_provider)?;
+        assert_eq!(memory_total_kb, 8048836);
+        assert_eq!(memory_usage_kb, 8048836);
         Ok(())
     }
 
@@ -94,10 +88,9 @@ mod tests {
             ])
         });
 
-        let stats = get_memory_stats(&mock_provider)?;
-
-        assert_eq!(stats.memory_total_kb, 0);
-        assert_eq!(stats.memory_usage_kb, 0);
+        let (memory_usage_kb, memory_total_kb) = get_memory_usage_and_total_kb(&mock_provider)?;
+        assert_eq!(memory_total_kb, 0);
+        assert_eq!(memory_usage_kb, 0);
         Ok(())
     }
 
@@ -108,10 +101,9 @@ mod tests {
             .expect_get_proc_meminfo()
             .returning(|| Ok(vec![]));
 
-        let stats = get_memory_stats(&mock_provider)?;
-
-        assert_eq!(stats.memory_total_kb, 0);
-        assert_eq!(stats.memory_usage_kb, 0);
+        let (memory_usage_kb, memory_total_kb) = get_memory_usage_and_total_kb(&mock_provider)?;
+        assert_eq!(memory_total_kb, 0);
+        assert_eq!(memory_usage_kb, 0);
         Ok(())
     }
 
@@ -125,10 +117,9 @@ mod tests {
             ])
         });
 
-        let stats = get_memory_stats(&mock_provider)?;
-
-        assert_eq!(stats.memory_total_kb, 8000000);
-        assert_eq!(stats.memory_usage_kb, 0);
+        let (memory_usage_kb, memory_total_kb) = get_memory_usage_and_total_kb(&mock_provider)?;
+        assert_eq!(memory_total_kb, 8000000);
+        assert_eq!(memory_usage_kb, 0);
         Ok(())
     }
 
@@ -139,8 +130,7 @@ mod tests {
             .expect_get_proc_meminfo()
             .returning(|| Err(io::Error::new(io::ErrorKind::NotFound, "File not found")));
 
-        let result = get_memory_stats(&mock_provider);
-        assert!(result.is_err());
+        assert!(get_memory_usage_and_total_kb(&mock_provider).is_err());
     }
 
     #[test]

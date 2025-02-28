@@ -5,34 +5,33 @@ use proc::ProcSource;
 use std::io;
 
 pub enum ResourceType {
-    CPU,
-    Memory,
+    NumCpus,
+    CpuUsage,
+    MemoryUsageKb,
+    MemoryTotalKb,
 }
 
-pub struct CpuStats {
-    pub num_cpus: f64,
-    pub cpu_usage: f64,
+pub fn get_num_cpus() -> Option<f64> {
+    let source = get_best_system_stats_source_for(ResourceType::NumCpus)?;
+    source.get_num_cpus().ok()
 }
 
-pub struct MemoryStats {
-    pub memory_usage_kb: u64,
-    pub memory_total_kb: u64,
+pub fn get_cpu_usage() -> Option<f64> {
+    let source = get_best_system_stats_source_for(ResourceType::CpuUsage)?;
+    source.get_cpu_usage().ok()
 }
 
-pub fn get_cpu_stats() -> io::Result<CpuStats> {
-    let source = get_best_system_stats_source_for(ResourceType::CPU)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No available CPU stats source"))?;
-    source.get_cpu_stats()
+pub fn get_memory_usage_kb() -> Option<u64> {
+    let source = get_best_system_stats_source_for(ResourceType::MemoryUsageKb)?;
+    source.get_memory_usage_kb().ok()
 }
 
-pub fn get_memory_stats() -> io::Result<MemoryStats> {
-    let source = get_best_system_stats_source_for(ResourceType::Memory).ok_or_else(|| {
-        io::Error::new(io::ErrorKind::NotFound, "No available memory stats source")
-    })?;
-    source.get_memory_stats()
+pub fn get_memory_total_kb() -> Option<u64> {
+    let source = get_best_system_stats_source_for(ResourceType::MemoryTotalKb)?;
+    source.get_memory_total_kb().ok()
 }
 
-pub fn get_best_system_stats_source_for(
+fn get_best_system_stats_source_for(
     resource_type: ResourceType,
 ) -> Option<Box<dyn SystemStatsSource>> {
     // TODO: add cgroup v2 stat resolution here
@@ -48,7 +47,9 @@ pub fn get_best_system_stats_source_for(
 }
 
 pub trait SystemStatsSource {
-    fn get_cpu_stats(&self) -> io::Result<CpuStats>;
-    fn get_memory_stats(&self) -> io::Result<MemoryStats>;
+    fn get_num_cpus(&self) -> io::Result<f64>;
+    fn get_cpu_usage(&self) -> io::Result<f64>;
+    fn get_memory_usage_kb(&self) -> io::Result<u64>;
+    fn get_memory_total_kb(&self) -> io::Result<u64>;
     fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }
