@@ -1,7 +1,7 @@
 mod cpu;
 mod mem;
 
-use crate::stats::{utils, Aspect, CpuStats, MemoryStats, SystemStatsSource};
+use crate::stats::{utils, CpuStats, MemoryStats, ResourceType, SystemStatsSource};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -32,8 +32,8 @@ impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
         mem::get_memory_stats(&self.provider)
     }
 
-    fn is_available_for(&self, aspect: Aspect) -> bool {
-        self.provider.is_available_for(aspect)
+    fn is_available_for(&self, resource_type: &ResourceType) -> bool {
+        self.provider.is_available_for(resource_type)
     }
 }
 
@@ -75,10 +75,10 @@ impl ProcProvider for ProcFilesystemReader {
         BufReader::new(file).lines().collect()
     }
 
-    fn is_available_for(&self, aspect: Aspect) -> bool {
-        let patch_to_check = match aspect {
-            Aspect::CPU => self.proc_stat_path(),
-            Aspect::Memory => self.proc_meminfo_path(),
+    fn is_available_for(&self, resource_type: &ResourceType) -> bool {
+        let patch_to_check = match resource_type {
+            ResourceType::CPU => self.proc_stat_path(),
+            ResourceType::Memory => self.proc_meminfo_path(),
         };
         utils::is_file_readable(&patch_to_check)
     }
@@ -89,5 +89,5 @@ impl ProcProvider for ProcFilesystemReader {
 pub trait ProcProvider {
     fn get_proc_stat(&self) -> io::Result<Vec<String>>;
     fn get_proc_meminfo(&self) -> io::Result<Vec<String>>;
-    fn is_available_for(&self, aspect: Aspect) -> bool;
+    fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }
