@@ -1,8 +1,8 @@
-use std::thread;
-use tracing::{debug, info};
-
 pub mod env;
 pub mod stats;
+
+use std::thread;
+use tracing::{debug, info};
 
 pub fn run_acolyte() {
     let stat_interval = env::get_stat_interval();
