@@ -38,7 +38,7 @@ pub fn get_best_system_stats_source_for(aspect: Aspect) -> Option<impl SystemSta
 
     // TODO: add cgroup v1 stat resolution here
 
-    let source = ProcSource::with_file_reader_at("/proc");
+    let source = ProcSource::with_filesystem_reader_at("/proc");
     if source.is_available_for(aspect) {
         return Some(source);
     };

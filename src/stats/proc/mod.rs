@@ -16,7 +16,7 @@ pub struct ProcSource<P: ProcProvider> {
 }
 
 impl<P: ProcProvider> ProcSource<P> {
-    pub fn new(provider: P) -> Self {
+    fn new(provider: P) -> Self {
         Self { provider }
     }
 }
@@ -37,18 +37,18 @@ impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
     }
 }
 
-impl ProcSource<ProcFileReader> {
-    pub fn with_file_reader_at(path: &str) -> Self {
-        Self::new(ProcFileReader::new(path))
+impl ProcSource<ProcFilesystemReader> {
+    pub fn with_filesystem_reader_at(path: &str) -> Self {
+        Self::new(ProcFilesystemReader::new(path))
     }
 }
 
 /// The default proc value provider, reads from the `/proc` filesystem.
-pub struct ProcFileReader {
+pub struct ProcFilesystemReader {
     proc_path: PathBuf,
 }
 
-impl ProcFileReader {
+impl ProcFilesystemReader {
     fn new(path: &str) -> Self {
         Self {
             proc_path: PathBuf::from(path),
@@ -64,7 +64,7 @@ impl ProcFileReader {
     }
 }
 
-impl ProcProvider for ProcFileReader {
+impl ProcProvider for ProcFilesystemReader {
     fn get_proc_stat(&self) -> io::Result<Vec<String>> {
         let file = File::open(self.proc_stat_path())?;
         BufReader::new(file).lines().collect()
