@@ -89,13 +89,11 @@ fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 
 fn get_cpu_count<R: ProcProvider>(reader: &R) -> io::Result<u32> {
     let lines = reader.get_proc_stat()?;
 
-    // count lines starting with "cpu" but exclude the first one, which is the total stats
-    let mut count = 0;
-    for line in &lines {
-        if line.starts_with("cpu") && !line.starts_with("cpu ") {
-            count += 1;
-        }
-    }
+    // skip the line with `cpu` without a number, that is the sum of all CPUs
+    let count = lines
+        .iter()
+        .filter(|line| line.starts_with("cpu") && !line.starts_with("cpu "))
+        .count() as u32;
 
     Ok(count)
 }
