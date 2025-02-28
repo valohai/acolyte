@@ -2,7 +2,7 @@ mod cpu_usage;
 mod memory;
 mod num_cpus;
 
-use crate::stats::{utils, ResourceType, SystemStatsSource};
+use crate::stats::{utils, CpuUsageValue, ResourceType, SystemStatsSource};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -24,23 +24,23 @@ impl<P: ProcProvider> ProcSource<P> {
 
 impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
     fn get_num_cpus(&self) -> io::Result<f64> {
-        debug!("Using /proc for the number of CPUs");
+        debug!("Using proc for the number of CPUs");
         num_cpus::get_num_cpus(&self.provider)
     }
 
-    fn get_cpu_usage(&self) -> io::Result<f64> {
-        debug!("Using /proc for CPU usage");
+    fn get_cpu_usage(&self) -> io::Result<CpuUsageValue> {
+        debug!("Using proc for CPU usage");
         cpu_usage::get_cpu_usage(&self.provider)
     }
 
     fn get_memory_usage_kb(&self) -> io::Result<u64> {
-        debug!("Using /proc for memory usage kb");
+        debug!("Using proc for memory usage kb");
         let (memory_usage_kb, _) = memory::get_memory_usage_and_total_kb(&self.provider)?;
         Ok(memory_usage_kb)
     }
 
     fn get_memory_total_kb(&self) -> io::Result<u64> {
-        debug!("Using /proc for memory total kb");
+        debug!("Using proc for memory total kb");
         let (_, memory_total_kb) = memory::get_memory_usage_and_total_kb(&self.provider)?;
         Ok(memory_total_kb)
     }

@@ -1,9 +1,10 @@
 use crate::stats::proc::ProcProvider;
+use crate::stats::CpuUsageValue;
 use std::io;
 use tracing::{debug, warn};
 
 /// Get CPU usage (% of all available CPUS) from the `/proc` filesystem (host-wide)
-pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<f64> {
+pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<CpuUsageValue> {
     // values are cumulative, we need to read the values twice
     // to calculate the CPU usage over a time interval (delta),
     // 100 ms seems common
@@ -11,7 +12,8 @@ pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<f64> {
     std::thread::sleep(std::time::Duration::from_millis(100));
     let current = get_total_cpu_jiffies(provider)?;
 
-    Ok(calculate_cpu_usage(&initial, &current))
+    let cpu_usage = calculate_cpu_usage(&initial, &current);
+    Ok(CpuUsageValue::FromProc(cpu_usage))
 }
 
 fn get_total_cpu_jiffies<R: ProcProvider>(provider: &R) -> io::Result<Vec<u64>> {
