@@ -39,6 +39,7 @@ pub fn get_cluster_name() -> String {
 }
 
 pub fn get_cpu_sample_ms() -> u64 {
+    // 100 ms seems like a common interval to sample CPU usage
     env::var("ACOLYTE_CPU_SAMPLE_RATE_MS")
         .ok()
         .and_then(|val| val.parse::<u64>().ok())

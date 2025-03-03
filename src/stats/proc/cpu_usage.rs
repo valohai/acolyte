@@ -6,9 +6,13 @@ use tracing::{debug, warn};
 
 /// Get CPU usage (% of all available CPUS) from the `/proc` filesystem (host-wide)
 pub fn get_cpu_usage<R: ProcProvider>(provider: &R) -> io::Result<CpuUsageValue> {
-    // values are cumulative, we need to read the values twice
-    // to calculate the CPU usage over a time interval (delta),
-    // 100 ms seems common
+    // CPU measurements from `procfs` are in "jiffies".
+    // Jiffy "duration" depends on the kernel configuration, so we sidestep needing to resolve that
+    // by calculating the CPU usage as a ratio of time spent being "vacant" (idle + iowait) vs. total time.
+    // https://elinux.org/Kernel_Timer_Systems
+
+    // `procfs` values are cumulative since system boot, we need to read
+    // the values twice to calculate the CPU usage
     let initial = get_total_cpu_jiffies(provider)?;
     std::thread::sleep(std::time::Duration::from_millis(env::get_cpu_sample_ms()));
     let current = get_total_cpu_jiffies(provider)?;
@@ -28,8 +32,8 @@ fn get_total_cpu_jiffies<R: ProcProvider>(provider: &R) -> io::Result<Vec<u64>> 
 
     // we only care about the first line, which is the total CPU stats
     // as we don't report CPU stats per core
-    let first_line = &lines[0];
-    let jiffies: Vec<u64> = first_line
+    let total_cpu_line = &lines[0];
+    let jiffies: Vec<u64> = total_cpu_line
         .split_whitespace()
         .skip(1) // skip the "cpu*" prefix
         .filter_map(|s| s.parse::<u64>().ok())
@@ -41,7 +45,6 @@ fn get_total_cpu_jiffies<R: ProcProvider>(provider: &R) -> io::Result<Vec<u64>> 
 /// Calculate CPU usage based on two sequential readings from `/proc/stat`
 fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 {
     // From: https://man7.org/linux/man-pages/man5/proc_stat.5.html
-    // The values in order are: user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice
     const IDLE_IDX: usize = 3; // idle is the 4th field
     const IOWAIT_IDX: usize = 4; // iowait is the 5th field
     const MIN_REQUIRED_LEN: usize = IOWAIT_IDX + 1;
