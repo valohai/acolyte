@@ -1,5 +1,6 @@
 use crate::stats::{utils, CpuUsageValue, ResourceType, SystemStatsSource};
 mod cpu_usage;
+mod num_cpus;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -27,7 +28,7 @@ impl CgroupV2Source<CgroupV2FilesystemReader> {
 impl<P: CgroupV2Provider> SystemStatsSource for CgroupV2Source<P> {
     fn get_num_cpus(&self) -> io::Result<f64> {
         debug!("Using cgroup v2 for the number of CPUs");
-        Err(io::Error::new(io::ErrorKind::Other, "Not implemented"))
+        num_cpus::get_num_cpus(&self.provider)
     }
 
     fn get_cpu_usage(&self) -> io::Result<CpuUsageValue> {
@@ -84,6 +85,15 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
         BufReader::new(file).lines().collect()
     }
 
+    fn get_cgroup_v2_cpu_max(&self) -> io::Result<String> {
+        let file = File::open(self.cpu_max_path())?;
+        let mut reader = BufReader::new(file);
+        // `cpu.max` file is just a single line...
+        let mut line = String::new();
+        reader.read_line(&mut line)?;
+        Ok(line)
+    }
+
     fn is_available_for(&self, resource_type: &ResourceType) -> bool {
         let path_to_check = match resource_type {
             ResourceType::NumCpus => self.cpu_max_path(),
@@ -98,5 +108,6 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
 #[cfg_attr(test, automock)]
 pub trait CgroupV2Provider {
     fn get_cgroup_v2_cpu_stat(&self) -> io::Result<Vec<String>>;
+    fn get_cgroup_v2_cpu_max(&self) -> io::Result<String>;
     fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }
