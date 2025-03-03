@@ -23,14 +23,11 @@ pub fn get_num_cpus<P: CgroupV2Provider>(provider: &P) -> io::Result<f64> {
     let quota_str = parts[0];
     let period_str = parts[1];
 
-    // if quota is `max`, no limit is set
     if quota_str == "max" {
-        // TODO: or should we just fallback to `procfs`?
-        let system_cpus = match std::thread::available_parallelism() {
-            Ok(count) => count.get() as f64,
-            Err(_) => 1.0,
-        };
-        return Ok(system_cpus);
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "`cpu.max` contains 'max' quota (unlimited), cannot determine the actual CPU count",
+        ));
     }
 
     let quota = match quota_str.parse::<u64>() {
@@ -92,8 +89,9 @@ mod tests {
             .expect_get_cgroup_v2_cpu_max()
             .returning(|| Ok("max 100000".to_string()));
 
-        // depends on the test system so 🤷
-        assert!(get_num_cpus(&mock_provider).unwrap() >= 1.0);
+        let result = get_num_cpus(&mock_provider);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("unlimited"));
     }
 
     #[test]

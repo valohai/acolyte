@@ -121,7 +121,46 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
             ResourceType::MemoryUsageKb => self.mem_current_path(),
             ResourceType::MemoryTotalKb => self.mem_max_path(),
         };
-        utils::is_file_readable(&path_to_check)
+
+        if !utils::is_file_readable(&path_to_check) {
+            return false;
+        }
+
+        // additional checks where just checking that the file is readable is not enough
+        match resource_type {
+            ResourceType::MemoryTotalKb => match File::open(&path_to_check) {
+                Ok(file) => {
+                    let mut reader = BufReader::new(file);
+                    let mut first_line = String::new();
+                    if reader.read_line(&mut first_line).is_ok() && first_line.trim() == "max" {
+                        debug!(
+                            "`memory.max` contains 'max', source unavailable for getting the actual memory total"
+                        );
+                        return false;
+                    }
+                }
+                Err(_) => return false,
+            },
+            ResourceType::NumCpus => match File::open(&path_to_check) {
+                Ok(file) => {
+                    let mut reader = BufReader::new(file);
+                    let mut first_line = String::new();
+                    if reader.read_line(&mut first_line).is_ok() {
+                        let parts: Vec<&str> = first_line.trim().split_whitespace().collect();
+                        if parts.len() >= 1 && parts[0] == "max" {
+                            debug!(
+                                "`cpu.max` contains 'max' quota, source unavailable for getting the actual number of CPUs"
+                            );
+                            return false;
+                        }
+                    }
+                }
+                Err(_) => return false,
+            },
+            _ => {}
+        }
+
+        true
     }
 }
 

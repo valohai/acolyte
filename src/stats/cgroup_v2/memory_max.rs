@@ -5,10 +5,11 @@ use std::io;
 pub fn get_memory_max_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u64> {
     let memory_max_text = provider.get_cgroup_v2_memory_max()?;
 
-    // In cgroup v2, `memory.max` value "max" means no limit
     if memory_max_text.trim() == "max" {
-        // TODO: fallback to `procfs`
-        return Ok(0);
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "`memory.max` contains 'max' (unlimited), cannot determine the actual memory limit",
+        ));
     }
 
     match memory_max_text.trim().parse::<u64>() {
@@ -38,15 +39,15 @@ mod tests {
     }
 
     #[test]
-    fn test_get_memory_max_kb_unlimited() -> io::Result<()> {
+    fn test_get_memory_max_kb_unlimited() {
         let mut mock_provider = MockCgroupV2Provider::new();
         mock_provider
             .expect_get_cgroup_v2_memory_max()
             .returning(|| Ok("max".to_string()));
 
-        let memory_max_kb = get_memory_max_kb(&mock_provider)?;
-        assert_eq!(memory_max_kb, 0); // TODO: should be an error?
-        Ok(())
+        let result = get_memory_max_kb(&mock_provider);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("unlimited"));
     }
 
     #[test]
