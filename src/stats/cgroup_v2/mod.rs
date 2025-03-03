@@ -1,5 +1,6 @@
 use crate::stats::{utils, CpuUsageValue, ResourceType, SystemStatsSource};
 mod cpu_usage;
+mod memory_current;
 mod num_cpus;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
@@ -38,7 +39,7 @@ impl<P: CgroupV2Provider> SystemStatsSource for CgroupV2Source<P> {
 
     fn get_memory_usage_kb(&self) -> io::Result<u64> {
         debug!("Using cgroup v2 for memory usage");
-        Err(io::Error::new(io::ErrorKind::Other, "Not implemented"))
+        memory_current::get_memory_current_kb(&self.provider)
     }
 
     fn get_memory_total_kb(&self) -> io::Result<u64> {
@@ -94,6 +95,15 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
         Ok(line)
     }
 
+    fn get_cgroup_v2_memory_current(&self) -> io::Result<String> {
+        let file = File::open(self.mem_current_path())?;
+        let mut reader = BufReader::new(file);
+        // `memory.current` file is just a single line...
+        let mut line = String::new();
+        reader.read_line(&mut line)?;
+        Ok(line)
+    }
+
     fn is_available_for(&self, resource_type: &ResourceType) -> bool {
         let path_to_check = match resource_type {
             ResourceType::NumCpus => self.cpu_max_path(),
@@ -109,5 +119,6 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
 pub trait CgroupV2Provider {
     fn get_cgroup_v2_cpu_stat(&self) -> io::Result<Vec<String>>;
     fn get_cgroup_v2_cpu_max(&self) -> io::Result<String>;
+    fn get_cgroup_v2_memory_current(&self) -> io::Result<String>;
     fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }
