@@ -1,21 +1,30 @@
 mod cgroup_v2;
+mod nvidia_smi;
 mod proc;
 mod utils;
 
+use nvidia_smi::NvidiaSmiExecutor;
 use proc::ProcSource;
 use std::io;
-
-// TODO: see if we could make this a bit simpler or give these a better name
-pub enum CpuUsageValue {
-    FromCgroupV2(f64), // this is normalized CPU usage i.e., 1.5 for one and a half CPUs busy
-    FromProc(f64),     // this is fractional CPU usage i.e., 0.75 for 75% of all CPUs busy
-}
 
 pub enum ResourceType {
     NumCpus,
     CpuUsage,
     MemoryUsageKb,
     MemoryTotalKb,
+}
+
+// TODO: see if we could make this a bit simpler or give these a better name
+pub enum CpuUsageValue {
+    FromCgroupV2(f64), // normalized CPU usage i.e., 1.5 for one and a half CPUs busy
+    FromProc(f64),     // fractional CPU usage i.e., 0.75 for 75% of all CPUs busy
+}
+
+pub struct GpuStats {
+    pub num_gpus: u32,        // N = number of GPUs
+    pub gpu_usage: f64,       // normalized usage across all GPUs (0.0 - N.0)
+    pub memory_usage_kb: u64, // sum of memory usage across all GPUs
+    pub memory_total_kb: u64, // sum of total memory across all GPUs
 }
 
 pub fn get_num_cpus() -> Option<f64> {
@@ -36,6 +45,12 @@ pub fn get_memory_usage_kb() -> Option<u64> {
 pub fn get_memory_total_kb() -> Option<u64> {
     let source = get_best_system_stats_source_for(ResourceType::MemoryTotalKb)?;
     source.get_memory_total_kb().ok()
+}
+
+pub fn get_gpu_stats() -> Option<GpuStats> {
+    // we only support NVIDIA GPUs for now so no need to check for other sources
+    let executor = NvidiaSmiExecutor::new();
+    nvidia_smi::get_gpu_stats(&executor).ok()
 }
 
 fn get_best_system_stats_source_for(
