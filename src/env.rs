@@ -23,11 +23,11 @@ pub fn get_or_create_acolyte_id() -> Uuid {
 }
 
 pub fn get_stat_interval() -> Duration {
-    let secs = env::var("ACOLYTE_STAT_INTERVAL_SECS")
+    let secs = env::var("ACOLYTE_STAT_INTERVAL_MS")
         .ok()
         .and_then(|val| val.parse::<u64>().ok())
-        .unwrap_or(5);
-    Duration::from_secs(secs)
+        .unwrap_or(5000);
+    Duration::from_millis(secs)
 }
 
 pub fn get_sentry_dsn() -> Option<String> {
