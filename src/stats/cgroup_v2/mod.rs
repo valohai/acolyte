@@ -1,4 +1,4 @@
-use crate::stats::{utils, CpuUsageValue, ResourceType, SystemStatsSource};
+use crate::stats::{CpuUsageValue, ResourceType, SystemStatsSource, utils};
 mod cpu_usage;
 mod memory_current;
 mod memory_max;

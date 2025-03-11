@@ -1,10 +1,10 @@
 use acolyte::env;
-use libc::{SIGHUP, SIG_IGN};
+use libc::{SIG_IGN, SIGHUP};
 use std::time::Duration;
 use std::{os::unix::process::CommandExt, panic, process, thread};
 use tracing::{error, info, warn};
-use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::*;
 use uuid::Uuid;
 
 fn main() {
