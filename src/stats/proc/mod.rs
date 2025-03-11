@@ -2,7 +2,7 @@ mod cpu_usage;
 mod memory;
 mod num_cpus;
 
-use crate::stats::{utils, CpuUsageValue, ResourceType, SystemStatsSource};
+use crate::stats::{CpuUsageValue, ResourceType, SystemStatsSource, utils};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
