@@ -27,6 +27,12 @@ pub struct StatsEntry {
     pub gpu_memory_total_kb: Option<u64>,
 }
 
+impl Default for StatsEntry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatsEntry {
     pub fn new() -> Self {
         let now = SystemTime::now()
@@ -80,10 +86,10 @@ fn clean_up_old_stats_entries(dir_path: &Path) -> io::Result<()> {
         .map(|entry| entry.path())
         .filter(|path| {
             path.is_file()
-                && path.extension().map_or(false, |ext| ext == "json")
+                && path.extension().is_some_and(|ext| ext == "json")
                 && path
                     .file_name()
-                    .map_or(false, |name| name.to_string_lossy().starts_with("stats-"))
+                    .is_some_and(|name| name.to_string_lossy().starts_with("stats-"))
         })
         .collect();
 

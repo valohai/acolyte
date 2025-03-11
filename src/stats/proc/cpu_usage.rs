@@ -89,9 +89,7 @@ fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 
     let current_vacancy = current_jiffies[IDLE_IDX] + current_jiffies[IOWAIT_IDX];
     let vacant_delta = current_vacancy.saturating_sub(initial_vacancy);
 
-    let cpu_usage = 1.0 - (vacant_delta as f64 / total_delta as f64);
-
-    cpu_usage
+    1.0 - (vacant_delta as f64 / total_delta as f64)
 }
 
 #[cfg(test)]

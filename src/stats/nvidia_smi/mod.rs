@@ -24,7 +24,7 @@ impl NvidiaSmiExecutor {
 impl NvidiaSmiProvider for NvidiaSmiExecutor {
     fn get_nvidia_gpu_stats(&self) -> io::Result<String> {
         let output = Command::new("nvidia-smi")
-            .args(&[
+            .args([
                 "--query-gpu=index,utilization.gpu,memory.used,memory.total",
                 "--format=csv,noheader,nounits",
             ])

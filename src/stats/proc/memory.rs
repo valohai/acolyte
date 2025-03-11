@@ -10,9 +10,9 @@ pub fn get_memory_usage_and_total_kb<R: ProcProvider>(provider: &R) -> io::Resul
 
     for line in &lines {
         if line.starts_with("MemAvailable:") {
-            available_kb = parse_proc_meminfo_value(&line);
+            available_kb = parse_proc_meminfo_value(line);
         } else if line.starts_with("MemTotal:") {
-            memory_total_kb = parse_proc_meminfo_value(&line);
+            memory_total_kb = parse_proc_meminfo_value(line);
         }
 
         if memory_total_kb > 0 && available_kb > 0 {
@@ -20,11 +20,7 @@ pub fn get_memory_usage_and_total_kb<R: ProcProvider>(provider: &R) -> io::Resul
         }
     }
 
-    let memory_usage_kb = if available_kb <= memory_total_kb {
-        memory_total_kb - available_kb
-    } else {
-        0
-    };
+    let memory_usage_kb = memory_total_kb.saturating_sub(available_kb);
 
     Ok((memory_usage_kb, memory_total_kb))
 }

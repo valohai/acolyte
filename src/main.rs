@@ -38,7 +38,7 @@ fn main() {
         env::MAX_RUN_ATTEMPTS
     );
 
-    let run_result = panic::catch_unwind(|| acolyte::run_acolyte());
+    let run_result = panic::catch_unwind(acolyte::run_acolyte);
     if run_result.is_ok() {
         process::exit(0);
     } else {

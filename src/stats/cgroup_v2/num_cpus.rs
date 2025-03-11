@@ -12,7 +12,7 @@ pub fn get_num_cpus<P: CgroupV2Provider>(provider: &P) -> io::Result<f64> {
     // So, the number of CPUs "cores" = quota / period
 
     // `cpu.max` format: "quota period"
-    let parts: Vec<&str> = cpu_max_text.trim().split_whitespace().collect();
+    let parts: Vec<&str> = cpu_max_text.split_whitespace().collect();
     if parts.len() != 2 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,

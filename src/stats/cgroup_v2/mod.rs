@@ -146,8 +146,8 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
                     let mut reader = BufReader::new(file);
                     let mut first_line = String::new();
                     if reader.read_line(&mut first_line).is_ok() {
-                        let parts: Vec<&str> = first_line.trim().split_whitespace().collect();
-                        if parts.len() >= 1 && parts[0] == "max" {
+                        let parts: Vec<&str> = first_line.split_whitespace().collect();
+                        if !parts.is_empty() && parts[0] == "max" {
                             debug!(
                                 "`cpu.max` contains 'max' quota, source unavailable for getting the actual number of CPUs"
                             );
