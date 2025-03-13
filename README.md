@@ -51,11 +51,11 @@ cargo test
 RUST_LOG=debug cargo run
 ```
 
-# Build
+## Build
 
 For release, you should build it as a [`musl`](https://en.wikipedia.org/wiki/Musl) static binary:
 
-```bash
+```shell
 rustup target add x86_64-unknown-linux-musl
 
 # https://rust-lang.github.io/rfcs/1721-crt-static.html#specifying-dynamicstatic-c-runtime-linkage
@@ -63,4 +63,20 @@ rustup target add x86_64-unknown-linux-musl
 RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target x86_64-unknown-linux-musl
 
 RUST_LOG=debug target/x86_64-unknown-linux-musl/release/acolyte
+```
+
+## Release
+
+GitHub will build and host new binaries on every version tag push on the `main` branch.
+
+```shell
+git checkout main
+git pull origin main
+
+# edit Cargo.toml to update version
+git add Cargo.toml
+git commit -m 'Become vx.y.z'
+
+git tag vx.y.z
+git push origin main vx.y.z
 ```
