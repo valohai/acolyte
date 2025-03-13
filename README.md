@@ -2,14 +2,46 @@
 
 > _[Would you like to know the secret to eternal happiness?](https://youtu.be/M_FAL8nVT40?t=25)_
 
-Acolyte is a lightweight resource monitor for Kubernetes containers.
+Acolyte is a lightweight resource monitoring tool designed to collect statistics in containerized environments,
+particularly Kubernetes.
 
-The planned flow is:
+Acolyte monitors CPU, memory, and GPU utilization and writes the data to JSON files for easy consumption by other
+services. It's designed to run alongside your application in the same container and built with compatibility in mind.
 
-1. start a container
-2. `exec` Acolyte to the container, and make sure it keeps on running after `exec` termination
-3. continuously record stats on a shared volume, another worker reads them from there
-4. Acolyte dies with the container
+Acolyte is configured through environment variables:
+
+* `RUST_LOG`: log level e.g. debug; default: info
+* `ACOLYTE_STATS_DIR`: directory where stat files are written; default: /tmp/acolyte/stats
+* `ACOLYTE_STAT_INTERVAL_MS`: interval between stats collection in milliseconds; default: 5000
+* `ACOLYTE_MAX_STATS_ENTRIES`: maximum number of stat files to keep; default: 12
+* `ACOLYTE_CPU_SAMPLE_RATE_MS`: sample window for CPU usage in milliseconds; default: 100
+* `SENTRY_DSN`: optional Sentry DSN for error reporting
+* `CLUSTER_NAME`: optional cluster identification for Sentry
+
+```shell
+# you probably want to run it in the background in your container
+./acolyte &
+
+# or attach it to an already running Kubernetes Pod
+kubectl cp ./target/x86_64-unknown-linux-musl/release/acolyte my-pod:/tmp/acolyte
+kubectl exec my-pod -- sh -c "/tmp/acolyte &"
+```
+
+The JSON fields are fairly self-explanatory e.g. `stats-1741860918020.json`:
+
+```json
+{
+  "time": 1741860918.0206466,
+  "num_cpus": 20.0,
+  "cpu_usage": 3.5053825547467063,
+  "memory_usage_kb": 22802796,
+  "memory_total_kb": 65542712,
+  "num_gpus": 1,
+  "gpu_usage": 0.23,
+  "gpu_memory_usage_kb": 50176,
+  "gpu_memory_total_kb": 8388608
+}
+```
 
 ## Development
 
