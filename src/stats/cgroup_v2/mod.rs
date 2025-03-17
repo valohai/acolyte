@@ -22,7 +22,7 @@ impl<P: CgroupV2Provider> CgroupV2Source<P> {
 }
 
 impl CgroupV2Source<CgroupV2FilesystemReader> {
-    pub fn with_filesystem_reader_at(path: &str) -> Self {
+    pub fn with_filesystem_reader_at(path: PathBuf) -> Self {
         Self::new(CgroupV2FilesystemReader::new(path))
     }
 }
@@ -58,10 +58,8 @@ pub struct CgroupV2FilesystemReader {
 }
 
 impl CgroupV2FilesystemReader {
-    fn new(path: &str) -> Self {
-        Self {
-            cgroup_v2_path: PathBuf::from(path),
-        }
+    fn new(cgroup_v2_path: PathBuf) -> Self {
+        Self { cgroup_v2_path }
     }
 
     fn cpu_max_path(&self) -> PathBuf {

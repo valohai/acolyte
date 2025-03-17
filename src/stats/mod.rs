@@ -4,6 +4,7 @@ mod paths;
 mod proc;
 mod utils;
 
+use crate::stats::paths::get_cgroup_v2_mount_point;
 use nvidia_smi::NvidiaSmiExecutor;
 use paths::detect_cgroup_version;
 use proc::ProcSource;
@@ -67,10 +68,12 @@ fn get_best_system_stats_source_for(
     let detect_result = detect_cgroup_version("/proc/self/cgroup");
 
     if Some(CgroupVersion::V2) == detect_result.ok() {
-        let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at("/sys/fs/cgroup");
-        if source.is_available_for(&resource_type) {
-            return Some(Box::new(source));
-        };
+        if let Ok(v2_mount_point) = get_cgroup_v2_mount_point("/proc/mounts") {
+            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
+            if source.is_available_for(&resource_type) {
+                return Some(Box::new(source));
+            };
+        }
     }
 
     let source = ProcSource::with_filesystem_reader_at("/proc");
