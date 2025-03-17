@@ -51,7 +51,7 @@ impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
 }
 
 impl ProcSource<ProcFilesystemReader> {
-    pub fn with_filesystem_reader_at(path: &str) -> Self {
+    pub fn with_filesystem_reader_at(path: PathBuf) -> Self {
         Self::new(ProcFilesystemReader::new(path))
     }
 }
@@ -62,10 +62,8 @@ pub struct ProcFilesystemReader {
 }
 
 impl ProcFilesystemReader {
-    fn new(path: &str) -> Self {
-        Self {
-            proc_path: PathBuf::from(path),
-        }
+    fn new(proc_path: PathBuf) -> Self {
+        Self { proc_path }
     }
 
     fn proc_stat_path(&self) -> PathBuf {

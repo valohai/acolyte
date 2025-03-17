@@ -9,6 +9,7 @@ use nvidia_smi::NvidiaSmiExecutor;
 use paths::detect_cgroup_version;
 use proc::ProcSource;
 use std::io;
+use std::path::PathBuf;
 
 pub enum ResourceType {
     NumCpus,
@@ -76,7 +77,7 @@ fn get_best_system_stats_source_for(
         }
     }
 
-    let source = ProcSource::with_filesystem_reader_at("/proc");
+    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
     if source.is_available_for(&resource_type) {
         return Some(Box::new(source));
     };
