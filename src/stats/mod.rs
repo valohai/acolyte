@@ -1,9 +1,11 @@
 mod cgroup_v2;
 mod nvidia_smi;
+mod paths;
 mod proc;
 mod utils;
 
 use nvidia_smi::NvidiaSmiExecutor;
+use paths::detect_cgroup_version;
 use proc::ProcSource;
 use std::io;
 
@@ -25,6 +27,12 @@ pub struct GpuStats {
     pub gpu_usage: f64,       // normalized usage across all GPUs (0.0 - N.0)
     pub memory_usage_kb: u64, // sum of memory usage across all GPUs
     pub memory_total_kb: u64, // sum of total memory across all GPUs
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum CgroupVersion {
+    V1,
+    V2,
 }
 
 pub fn get_num_cpus() -> Option<f64> {
@@ -56,12 +64,14 @@ pub fn get_gpu_stats() -> Option<GpuStats> {
 fn get_best_system_stats_source_for(
     resource_type: ResourceType,
 ) -> Option<Box<dyn SystemStatsSource>> {
-    let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at("/sys/fs/cgroup");
-    if source.is_available_for(&resource_type) {
-        return Some(Box::new(source));
-    };
+    let detect_result = detect_cgroup_version("/proc/self/cgroup");
 
-    // TODO: add cgroup v1 stat resolution here
+    if Some(CgroupVersion::V2) == detect_result.ok() {
+        let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at("/sys/fs/cgroup");
+        if source.is_available_for(&resource_type) {
+            return Some(Box::new(source));
+        };
+    }
 
     let source = ProcSource::with_filesystem_reader_at("/proc");
     if source.is_available_for(&resource_type) {
