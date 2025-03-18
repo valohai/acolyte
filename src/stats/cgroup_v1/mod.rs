@@ -13,9 +13,82 @@ use mockall::automock;
 
 #[derive(Default, Clone)]
 pub struct CgroupV1MountPoints {
-    pub cpu: Option<PathBuf>,
-    pub cpuacct: Option<PathBuf>,
-    pub memory: Option<PathBuf>,
+    // base paths
+    cpu: Option<PathBuf>,
+    cpuacct: Option<PathBuf>,
+    memory: Option<PathBuf>,
+
+    // derived paths
+    cpu_quota_path: Option<PathBuf>,
+    cpu_period_path: Option<PathBuf>,
+    cpu_usage_path: Option<PathBuf>,
+    memory_usage_path: Option<PathBuf>,
+    memory_limit_path: Option<PathBuf>,
+    memory_stat_path: Option<PathBuf>,
+}
+
+impl CgroupV1MountPoints {
+    pub fn new(cpu: Option<PathBuf>, cpuacct: Option<PathBuf>, memory: Option<PathBuf>) -> Self {
+        let mut mount_points = Self::default();
+        mount_points.set_cpu(cpu);
+        mount_points.set_cpuacct(cpuacct);
+        mount_points.set_memory(memory);
+        mount_points
+    }
+
+    pub fn cpu(&self) -> &Option<PathBuf> {
+        &self.cpu
+    }
+
+    pub fn cpuacct(&self) -> &Option<PathBuf> {
+        &self.cpuacct
+    }
+
+    pub fn memory(&self) -> &Option<PathBuf> {
+        &self.memory
+    }
+
+    pub fn set_cpu(&mut self, cpu: Option<PathBuf>) {
+        self.cpu_quota_path = cpu.as_ref().map(|pb| pb.join("cpu.cfs_quota_us"));
+        self.cpu_period_path = cpu.as_ref().map(|pb| pb.join("cpu.cfs_period_us"));
+        self.cpu = cpu;
+    }
+
+    pub fn set_cpuacct(&mut self, cpuacct: Option<PathBuf>) {
+        self.cpu_usage_path = cpuacct.as_ref().map(|pb| pb.join("cpuacct.usage"));
+        self.cpuacct = cpuacct;
+    }
+
+    pub fn set_memory(&mut self, memory: Option<PathBuf>) {
+        self.memory_usage_path = memory.as_ref().map(|pb| pb.join("memory.usage_in_bytes"));
+        self.memory_limit_path = memory.as_ref().map(|pb| pb.join("memory.limit_in_bytes"));
+        self.memory_stat_path = memory.as_ref().map(|pb| pb.join("memory.stat"));
+        self.memory = memory;
+    }
+
+    pub fn cpu_quota_path(&self) -> Option<PathBuf> {
+        self.cpu_quota_path.clone()
+    }
+
+    pub fn cpu_period_path(&self) -> Option<PathBuf> {
+        self.cpu_period_path.clone()
+    }
+
+    pub fn cpu_usage_path(&self) -> Option<PathBuf> {
+        self.cpu_usage_path.clone()
+    }
+
+    pub fn memory_usage_path(&self) -> Option<PathBuf> {
+        self.memory_usage_path.clone()
+    }
+
+    pub fn memory_limit_path(&self) -> Option<PathBuf> {
+        self.memory_limit_path.clone()
+    }
+
+    pub fn memory_stat_path(&self) -> Option<PathBuf> {
+        self.memory_stat_path.clone()
+    }
 }
 
 pub struct CgroupV1Source<P: CgroupV1Provider> {
@@ -62,45 +135,27 @@ impl CgroupV1FilesystemReader {
     }
 
     fn cpu_quota_path(&self) -> Option<PathBuf> {
-        self.mount_points
-            .cpu
-            .as_ref()
-            .map(|pb| pb.join("cpu.cfs_quota_us"))
+        self.mount_points.cpu_quota_path()
     }
 
     fn cpu_period_path(&self) -> Option<PathBuf> {
-        self.mount_points
-            .cpu
-            .as_ref()
-            .map(|pb| pb.join("cpu.cfs_period_us"))
+        self.mount_points.cpu_period_path()
     }
 
     fn cpu_usage(&self) -> Option<PathBuf> {
-        self.mount_points
-            .cpuacct
-            .as_ref()
-            .map(|pb| pb.join("cpuacct.usage"))
+        self.mount_points.cpu_usage_path()
     }
 
     fn memory_usage_path(&self) -> Option<PathBuf> {
-        self.mount_points
-            .memory
-            .as_ref()
-            .map(|pb| pb.join("memory.usage_in_bytes"))
+        self.mount_points.memory_usage_path()
     }
 
     fn memory_limit_path(&self) -> Option<PathBuf> {
-        self.mount_points
-            .memory
-            .as_ref()
-            .map(|pb| pb.join("memory.limit_in_bytes"))
+        self.mount_points.memory_limit_path()
     }
 
     fn memory_stat_path(&self) -> Option<PathBuf> {
-        self.mount_points
-            .memory
-            .as_ref()
-            .map(|pb| pb.join("memory.stat"))
+        self.mount_points.memory_stat_path()
     }
 }
 

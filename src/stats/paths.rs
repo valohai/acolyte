@@ -52,13 +52,13 @@ pub fn get_cgroup_v1_mount_points<P: AsRef<Path>>(
             let options: Vec<&str> = options_str.split(',').collect();
 
             if options.contains(&"cpu") {
-                v1_points.cpu = Some(PathBuf::from(mount_point));
+                v1_points.set_cpu(Some(PathBuf::from(mount_point)));
             }
             if options.contains(&"cpuacct") {
-                v1_points.cpuacct = Some(PathBuf::from(mount_point));
+                v1_points.set_cpuacct(Some(PathBuf::from(mount_point)));
             }
             if options.contains(&"memory") {
-                v1_points.memory = Some(PathBuf::from(mount_point));
+                v1_points.set_memory(Some(PathBuf::from(mount_point)));
             }
         }
     }
@@ -187,9 +187,9 @@ tmpfs /sys/firmware tmpfs ro,relatime 0 0";
         v1_file.write_all(v1_content.as_bytes())?;
 
         let mp = get_cgroup_v1_mount_points(v1_file)?;
-        assert_eq!(mp.cpu, Some("/sys/fs/cgroup/cpu,cpuacct".into()));
-        assert_eq!(mp.cpuacct, Some("/sys/fs/cgroup/cpu,cpuacct".into()));
-        assert_eq!(mp.memory, Some("/sys/fs/cgroup/memory".into()));
+        assert_eq!(*mp.cpu(), Some("/sys/fs/cgroup/cpu,cpuacct".into()));
+        assert_eq!(*mp.cpuacct(), Some("/sys/fs/cgroup/cpu,cpuacct".into()));
+        assert_eq!(*mp.memory(), Some("/sys/fs/cgroup/memory".into()));
         Ok(())
     }
 
@@ -204,9 +204,9 @@ cgroup /sys/fs/cgroup/memory cgroup ro,nosuid,nodev,noexec,relatime,memory 0 0";
         v1_file.write_all(v1_content.as_bytes())?;
 
         let mp = get_cgroup_v1_mount_points(v1_file)?;
-        assert_eq!(mp.cpu, Some(PathBuf::from("/sys/fs/cgroup/cpu")));
-        assert_eq!(mp.cpuacct, Some(PathBuf::from("/sys/fs/cgroup/cpuacct")));
-        assert_eq!(mp.memory, Some(PathBuf::from("/sys/fs/cgroup/memory")));
+        assert_eq!(*mp.cpu(), Some(PathBuf::from("/sys/fs/cgroup/cpu")));
+        assert_eq!(*mp.cpuacct(), Some(PathBuf::from("/sys/fs/cgroup/cpuacct")));
+        assert_eq!(*mp.memory(), Some(PathBuf::from("/sys/fs/cgroup/memory")));
         Ok(())
     }
 
@@ -221,9 +221,9 @@ tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0";
         v1_file.write_all(v1_content.as_bytes())?;
 
         let mp = get_cgroup_v1_mount_points(v1_file)?;
-        assert_eq!(mp.cpu, None);
-        assert_eq!(mp.cpuacct, None);
-        assert_eq!(mp.memory, Some(PathBuf::from("/sys/fs/cgroup/memory")));
+        assert_eq!(*mp.cpu(), None);
+        assert_eq!(*mp.cpuacct(), None);
+        assert_eq!(*mp.memory(), Some(PathBuf::from("/sys/fs/cgroup/memory")));
         Ok(())
     }
 
