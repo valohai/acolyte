@@ -1,6 +1,6 @@
 use crate::env;
-use crate::stats::proc::ProcProvider;
 use crate::stats::CpuUsageValue;
+use crate::stats::proc::ProcProvider;
 use std::io;
 use tracing::{debug, warn};
 

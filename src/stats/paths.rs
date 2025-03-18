@@ -1,5 +1,5 @@
-use crate::stats::cgroup_v1::CgroupV1MountPoints;
 use crate::stats::CgroupVersion;
+use crate::stats::cgroup_v1::CgroupV1MountPoints;
 use std::io;
 use std::path::{Path, PathBuf};
 

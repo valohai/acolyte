@@ -3,8 +3,8 @@ pub mod stats;
 pub mod store;
 
 use crate::stats::{
-    detect_cgroup_version, get_cgroup_v1_mount_points, get_cgroup_v2_mount_point, CgroupVersion,
-    CpuUsageValue,
+    CgroupVersion, CpuUsageValue, detect_cgroup_version, get_cgroup_v1_mount_points,
+    get_cgroup_v2_mount_point,
 };
 use crate::store::StatsEntry;
 use std::thread;

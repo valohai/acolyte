@@ -1,6 +1,6 @@
 use crate::env;
-use crate::stats::cgroup_v1::CgroupV1Provider;
 use crate::stats::CpuUsageValue;
+use crate::stats::cgroup_v1::CgroupV1Provider;
 use std::io;
 use std::time::{Duration, Instant};
 use tracing::debug;
