@@ -22,6 +22,7 @@ pub enum ResourceType {
 // TODO: see if we could make this a bit simpler or give these a better name
 pub enum CpuUsageValue {
     FromCgroupV2(f64), // normalized CPU usage i.e., 1.5 for one and a half CPUs busy
+    FromCgroupV1(f64), // normalized CPU usage, like the V2 above
     FromProc(f64),     // fractional CPU usage i.e., 0.75 for 75% of all CPUs busy
 }
 

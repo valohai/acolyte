@@ -22,6 +22,7 @@ pub fn run_acolyte() {
             // so that 100% cpu usage on a 4 core machine is 4.0 etc.
             let normalized_cpu_usage = match cpu_usage {
                 CpuUsageValue::FromCgroupV2(cgroup_usage) => Some(cgroup_usage),
+                CpuUsageValue::FromCgroupV1(cgroup_usage) => Some(cgroup_usage),
                 CpuUsageValue::FromProc(proc_usage) => {
                     // for the `procfs` values to report the number in the right format,
                     // we MUST know the number of cpus or the number will be misleading
