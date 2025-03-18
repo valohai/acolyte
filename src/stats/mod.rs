@@ -38,6 +38,22 @@ pub struct GpuStats {
 pub enum CgroupVersion {
     V1,
     V2,
+    V1AndV2, // a "hybrid" setup; both V1 and V2 cgroups are present, and resources they control are mixed
+}
+
+impl CgroupVersion {
+    pub fn has_v1(&self) -> bool {
+        match self {
+            Self::V1 | Self::V1AndV2 => true,
+            Self::V2 => false,
+        }
+    }
+    pub fn has_v2(&self) -> bool {
+        match self {
+            Self::V2 | Self::V1AndV2 => true,
+            Self::V1 => false,
+        }
+    }
 }
 
 pub fn get_num_cpus(
@@ -45,7 +61,7 @@ pub fn get_num_cpus(
     cgroup_v2_mount_point: Option<PathBuf>,
     cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
 ) -> Option<f64> {
-    if Some(CgroupVersion::V2) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v2()).is_some() {
         if let Some(v2_mount_point) = cgroup_v2_mount_point {
             let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
             if let Ok(result) = source.get_num_cpus() {
@@ -54,7 +70,7 @@ pub fn get_num_cpus(
         }
     }
 
-    if Some(CgroupVersion::V1) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v1()).is_some() {
         if let Some(v1_mount_points) = cgroup_v1_mount_points {
             let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
             if let Ok(result) = source.get_num_cpus() {
@@ -72,7 +88,7 @@ pub fn get_cpu_usage(
     cgroup_v2_mount_point: Option<PathBuf>,
     cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
 ) -> Option<CpuUsageValue> {
-    if Some(CgroupVersion::V2) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v2()).is_some() {
         if let Some(v2_mount_point) = cgroup_v2_mount_point {
             let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
             if let Ok(result) = source.get_cpu_usage() {
@@ -81,7 +97,7 @@ pub fn get_cpu_usage(
         }
     }
 
-    if Some(CgroupVersion::V1) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v1()).is_some() {
         if let Some(v1_mount_points) = cgroup_v1_mount_points {
             let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
             if let Ok(result) = source.get_cpu_usage() {
@@ -99,7 +115,7 @@ pub fn get_memory_usage_kb(
     cgroup_v2_mount_point: Option<PathBuf>,
     cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
 ) -> Option<u64> {
-    if Some(CgroupVersion::V2) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v2()).is_some() {
         if let Some(v2_mount_point) = cgroup_v2_mount_point {
             let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
             if let Ok(result) = source.get_memory_usage_kb() {
@@ -108,7 +124,7 @@ pub fn get_memory_usage_kb(
         }
     }
 
-    if Some(CgroupVersion::V1) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v1()).is_some() {
         if let Some(v1_mount_points) = cgroup_v1_mount_points {
             let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
             if let Ok(result) = source.get_memory_usage_kb() {
@@ -126,7 +142,7 @@ pub fn get_memory_total_kb(
     cgroup_v2_mount_point: Option<PathBuf>,
     cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
 ) -> Option<u64> {
-    if Some(CgroupVersion::V2) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v2()).is_some() {
         if let Some(v2_mount_point) = cgroup_v2_mount_point {
             let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
             if let Ok(result) = source.get_memory_total_kb() {
@@ -135,7 +151,7 @@ pub fn get_memory_total_kb(
         }
     }
 
-    if Some(CgroupVersion::V1) == cgroup_version {
+    if cgroup_version.as_ref().filter(|v| v.has_v1()).is_some() {
         if let Some(v1_mount_points) = cgroup_v1_mount_points {
             let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
             if let Ok(result) = source.get_memory_total_kb() {

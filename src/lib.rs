@@ -4,8 +4,7 @@ pub mod store;
 pub mod utils;
 
 use crate::stats::{
-    CgroupVersion, CpuUsageValue, detect_cgroup_version, get_cgroup_v1_mount_points,
-    get_cgroup_v2_mount_point,
+    CpuUsageValue, detect_cgroup_version, get_cgroup_v1_mount_points, get_cgroup_v2_mount_point,
 };
 use crate::store::StatsEntry;
 use std::thread;
@@ -13,21 +12,21 @@ use tracing::{debug, error};
 
 pub fn run_acolyte() {
     let stat_interval = env::get_stat_interval();
-    let cgroup_detect = detect_cgroup_version("/proc/self/cgroup").ok();
-    let v2_mount_point = match cgroup_detect {
-        Some(CgroupVersion::V2) => get_cgroup_v2_mount_point("/proc/mounts").ok(),
-        _ => None,
-    };
-    let v1_mount_points = match cgroup_detect {
-        Some(CgroupVersion::V1) => get_cgroup_v1_mount_points("/proc/mounts").ok(),
-        _ => None,
-    };
+    let cgroup_version = detect_cgroup_version("/proc/self/cgroup").ok();
+    let v2_mount_point = cgroup_version
+        .as_ref()
+        .filter(|v| v.has_v2())
+        .and_then(|_| get_cgroup_v2_mount_point("/proc/mounts").ok());
+    let v1_mount_points = cgroup_version
+        .as_ref()
+        .filter(|v| v.has_v1())
+        .and_then(|_| get_cgroup_v1_mount_points("/proc/mounts").ok());
 
     loop {
         let mut stats_entry = StatsEntry::new();
 
         let maybe_num_cpus = stats::get_num_cpus(
-            cgroup_detect.clone(),
+            cgroup_version.clone(),
             v2_mount_point.clone(),
             v1_mount_points.clone(),
         );
@@ -36,7 +35,7 @@ pub fn run_acolyte() {
         }
 
         if let Some(cpu_usage) = stats::get_cpu_usage(
-            cgroup_detect.clone(),
+            cgroup_version.clone(),
             v2_mount_point.clone(),
             v1_mount_points.clone(),
         ) {
@@ -60,7 +59,7 @@ pub fn run_acolyte() {
         }
 
         if let Some(mem_usage_kb) = stats::get_memory_usage_kb(
-            cgroup_detect.clone(),
+            cgroup_version.clone(),
             v2_mount_point.clone(),
             v1_mount_points.clone(),
         ) {
@@ -68,7 +67,7 @@ pub fn run_acolyte() {
         }
 
         if let Some(mem_total_kb) = stats::get_memory_total_kb(
-            cgroup_detect.clone(),
+            cgroup_version.clone(),
             v2_mount_point.clone(),
             v1_mount_points.clone(),
         ) {

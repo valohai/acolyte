@@ -66,18 +66,49 @@ pub fn get_cgroup_v1_mount_points<P: AsRef<Path>>(
     Ok(v1_points)
 }
 
-/// Detect the cgroup version of a process based on `/proc/[self|pid]/cgroup`.
+/// Detect the cgroup version(s) of a process based on `/proc/[self|pid]/cgroup`.
 ///
 /// Mostly used with the `/proc/self/cgroup`, but support other processes with `/proc/[pid]/cgroup` as well.
 pub fn detect_cgroup_version<P: AsRef<Path>>(self_cgroup_path: P) -> io::Result<CgroupVersion> {
     let content = std::fs::read_to_string(self_cgroup_path)?;
-    match content.lines().count() {
-        0 => Err(io::Error::new(
+
+    if content.is_empty() {
+        return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid proc self cgroup file format: {}", content),
-        )),
-        1 => Ok(CgroupVersion::V2),
-        _ => Ok(CgroupVersion::V1),
+            "Empty /proc/[self|pid]/cgroup file",
+        ));
+    }
+
+    let mut has_v1_entries = false;
+    let mut has_v2_entries = false;
+
+    for line in content.lines() {
+        // each line is in the format: id:controllers:path
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() != 3 {
+            continue;
+        }
+
+        // In cgroup v2, line controller fields are empty ("0::/path") as V2 is unified.
+        // In cgroup v1, lines contain controller names ("1:cpu:/path").
+        if parts[1].is_empty() {
+            has_v2_entries = true;
+        } else {
+            has_v1_entries = true;
+        }
+    }
+
+    if has_v1_entries && has_v2_entries {
+        Ok(CgroupVersion::V1AndV2)
+    } else if has_v1_entries {
+        Ok(CgroupVersion::V1)
+    } else if has_v2_entries {
+        Ok(CgroupVersion::V2)
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("No valid cgroup entries found in: {}", content),
+        ))
     }
 }
 
@@ -247,6 +278,28 @@ tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0";
         v1_file.write_all(v1_content.as_bytes())?;
 
         assert_eq!(detect_cgroup_version(v1_file)?, CgroupVersion::V1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_detect_single_v1_controller() -> io::Result<()> {
+        let mut v1_single_file = NamedTempFile::new()?;
+        v1_single_file.write_all("4:memory:/kubepods.slice/...".as_bytes())?;
+
+        assert_eq!(detect_cgroup_version(v1_single_file)?, CgroupVersion::V1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_detect_v1_and_v2_hybrid_setup() -> io::Result<()> {
+        let hybrid_content = "\
+0::/kubepods.slice/...
+4:memory:/kubepods.slice/memory/...
+10:pids:/kubepods.slice/pids/...";
+        let mut hybrid_file = NamedTempFile::new()?;
+        hybrid_file.write_all(hybrid_content.as_bytes())?;
+
+        assert_eq!(detect_cgroup_version(hybrid_file)?, CgroupVersion::V1AndV2);
         Ok(())
     }
 
