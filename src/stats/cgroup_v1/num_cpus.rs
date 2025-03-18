@@ -1,5 +1,6 @@
 use crate::stats::cgroup_v1::CgroupV1Provider;
 use std::io;
+use tracing::debug;
 
 /// Get the number of CPUs from the cgroup v1 filesystem
 pub fn get_num_cpus<P: CgroupV1Provider>(provider: &P) -> io::Result<f64> {
@@ -39,6 +40,7 @@ pub fn get_num_cpus<P: CgroupV1Provider>(provider: &P) -> io::Result<f64> {
     }
 
     let num_cpus = quota as f64 / period as f64;
+    debug!("Using cgroup v1 for CPU count");
     Ok(num_cpus)
 }
 

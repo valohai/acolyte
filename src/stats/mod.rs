@@ -3,11 +3,12 @@ mod cgroup_v2;
 mod nvidia_smi;
 mod paths;
 mod proc;
-mod utils;
 
-use crate::stats::paths::{get_cgroup_v1_mount_points, get_cgroup_v2_mount_point};
+use crate::stats::cgroup_v1::CgroupV1MountPoints;
+pub use crate::stats::paths::{
+    detect_cgroup_version, get_cgroup_v1_mount_points, get_cgroup_v2_mount_point,
+};
 use nvidia_smi::NvidiaSmiExecutor;
-use paths::detect_cgroup_version;
 use proc::ProcSource;
 use std::io;
 use std::path::PathBuf;
@@ -33,29 +34,117 @@ pub struct GpuStats {
     pub memory_total_kb: u64, // sum of total memory across all GPUs
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum CgroupVersion {
     V1,
     V2,
 }
 
-pub fn get_num_cpus() -> Option<f64> {
-    let source = get_best_system_stats_source_for(ResourceType::NumCpus)?;
+pub fn get_num_cpus(
+    cgroup_version: Option<CgroupVersion>,
+    cgroup_v2_mount_point: Option<PathBuf>,
+    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
+) -> Option<f64> {
+    if Some(CgroupVersion::V2) == cgroup_version {
+        if let Some(v2_mount_point) = cgroup_v2_mount_point {
+            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
+            if let Ok(result) = source.get_num_cpus() {
+                return Some(result);
+            }
+        }
+    }
+
+    if Some(CgroupVersion::V1) == cgroup_version {
+        if let Some(v1_mount_points) = cgroup_v1_mount_points {
+            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
+            if let Ok(result) = source.get_num_cpus() {
+                return Some(result);
+            }
+        }
+    }
+
+    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
     source.get_num_cpus().ok()
 }
 
-pub fn get_cpu_usage() -> Option<CpuUsageValue> {
-    let source = get_best_system_stats_source_for(ResourceType::CpuUsage)?;
+pub fn get_cpu_usage(
+    cgroup_version: Option<CgroupVersion>,
+    cgroup_v2_mount_point: Option<PathBuf>,
+    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
+) -> Option<CpuUsageValue> {
+    if Some(CgroupVersion::V2) == cgroup_version {
+        if let Some(v2_mount_point) = cgroup_v2_mount_point {
+            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
+            if let Ok(result) = source.get_cpu_usage() {
+                return Some(result);
+            }
+        }
+    }
+
+    if Some(CgroupVersion::V1) == cgroup_version {
+        if let Some(v1_mount_points) = cgroup_v1_mount_points {
+            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
+            if let Ok(result) = source.get_cpu_usage() {
+                return Some(result);
+            }
+        }
+    }
+
+    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
     source.get_cpu_usage().ok()
 }
 
-pub fn get_memory_usage_kb() -> Option<u64> {
-    let source = get_best_system_stats_source_for(ResourceType::MemoryUsageKb)?;
+pub fn get_memory_usage_kb(
+    cgroup_version: Option<CgroupVersion>,
+    cgroup_v2_mount_point: Option<PathBuf>,
+    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
+) -> Option<u64> {
+    if Some(CgroupVersion::V2) == cgroup_version {
+        if let Some(v2_mount_point) = cgroup_v2_mount_point {
+            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
+            if let Ok(result) = source.get_memory_usage_kb() {
+                return Some(result);
+            }
+        }
+    }
+
+    if Some(CgroupVersion::V1) == cgroup_version {
+        if let Some(v1_mount_points) = cgroup_v1_mount_points {
+            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
+            if let Ok(result) = source.get_memory_usage_kb() {
+                return Some(result);
+            }
+        }
+    }
+
+    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
     source.get_memory_usage_kb().ok()
 }
 
-pub fn get_memory_total_kb() -> Option<u64> {
-    let source = get_best_system_stats_source_for(ResourceType::MemoryTotalKb)?;
+pub fn get_memory_total_kb(
+    cgroup_version: Option<CgroupVersion>,
+    cgroup_v2_mount_point: Option<PathBuf>,
+    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
+) -> Option<u64> {
+    if Some(CgroupVersion::V2) == cgroup_version {
+        if let Some(v2_mount_point) = cgroup_v2_mount_point {
+            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
+            if let Ok(result) = source.get_memory_total_kb() {
+                return Some(result);
+            }
+        }
+    }
+
+    if Some(CgroupVersion::V1) == cgroup_version {
+        if let Some(v1_mount_points) = cgroup_v1_mount_points {
+            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
+            if let Ok(result) = source.get_memory_total_kb() {
+                return Some(result);
+            }
+        }
+    }
+
+    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
     source.get_memory_total_kb().ok()
 }
 
@@ -65,41 +154,9 @@ pub fn get_gpu_stats() -> Option<GpuStats> {
     nvidia_smi::get_gpu_stats(&executor).ok()
 }
 
-fn get_best_system_stats_source_for(
-    resource_type: ResourceType,
-) -> Option<Box<dyn SystemStatsSource>> {
-    let detected_cgroup = detect_cgroup_version("/proc/self/cgroup").ok();
-
-    if Some(CgroupVersion::V2) == detected_cgroup {
-        if let Ok(v2_mount_point) = get_cgroup_v2_mount_point("/proc/mounts") {
-            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
-            if source.is_available_for(&resource_type) {
-                return Some(Box::new(source));
-            };
-        }
-    }
-
-    if Some(CgroupVersion::V1) == detected_cgroup {
-        if let Ok(v1_mount_points) = get_cgroup_v1_mount_points("/proc/mounts") {
-            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
-            if source.is_available_for(&resource_type) {
-                return Some(Box::new(source));
-            };
-        }
-    }
-
-    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
-    if source.is_available_for(&resource_type) {
-        return Some(Box::new(source));
-    };
-
-    None
-}
-
 pub trait SystemStatsSource {
     fn get_num_cpus(&self) -> io::Result<f64>;
     fn get_cpu_usage(&self) -> io::Result<CpuUsageValue>;
     fn get_memory_usage_kb(&self) -> io::Result<u64>;
     fn get_memory_total_kb(&self) -> io::Result<u64>;
-    fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }

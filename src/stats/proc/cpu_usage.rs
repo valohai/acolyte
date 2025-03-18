@@ -1,6 +1,6 @@
 use crate::env;
-use crate::stats::CpuUsageValue;
 use crate::stats::proc::ProcProvider;
+use crate::stats::CpuUsageValue;
 use std::io;
 use tracing::{debug, warn};
 
@@ -89,6 +89,7 @@ fn calculate_cpu_usage(initial_jiffies: &[u64], current_jiffies: &[u64]) -> f64 
     let current_vacancy = current_jiffies[IDLE_IDX] + current_jiffies[IOWAIT_IDX];
     let vacant_delta = current_vacancy.saturating_sub(initial_vacancy);
 
+    debug!("Using proc for CPU usage");
     1.0 - (vacant_delta as f64 / total_delta as f64)
 }
 

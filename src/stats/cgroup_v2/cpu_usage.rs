@@ -1,9 +1,9 @@
 use crate::env;
-use crate::stats::CpuUsageValue;
 use crate::stats::cgroup_v2::CgroupV2Provider;
+use crate::stats::CpuUsageValue;
 use std::io;
 use std::time::{Duration, Instant};
-use tracing::warn;
+use tracing::{debug, warn};
 
 /// Get normalized CPU usage from cgroup v2
 pub fn get_cpu_usage<P: CgroupV2Provider>(provider: &P) -> io::Result<CpuUsageValue> {
@@ -28,6 +28,7 @@ pub fn get_cpu_usage<P: CgroupV2Provider>(provider: &P) -> io::Result<CpuUsageVa
     // - If a process used 100ms of CPU time in 100ms of real time, that is 1.0.
     // - If a process used 75ms of 2 CPUs in 100ms of real time, that is 1.5, but note that it's cumulative so cgroup reports 150ms
     let normalized_cpu_usage = delta_usage_usec / elapsed_usec;
+    debug!("Using cgroup v2 for CPU usage");
     Ok(CpuUsageValue::FromCgroupV2(normalized_cpu_usage))
 }
 

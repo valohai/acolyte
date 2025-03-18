@@ -1,4 +1,4 @@
-use crate::stats::{CpuUsageValue, ResourceType, SystemStatsSource};
+use crate::stats::{CpuUsageValue, SystemStatsSource};
 mod cpu_usage;
 mod memory_current;
 mod memory_max;
@@ -6,12 +6,11 @@ mod num_cpus;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
-use tracing::debug;
 
 #[cfg(test)]
 use mockall::automock;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct CgroupV1MountPoints {
     pub cpu: Option<PathBuf>,
     pub cpuacct: Option<PathBuf>,
@@ -36,27 +35,19 @@ impl CgroupV1Source<CgroupV1FilesystemReader> {
 
 impl<P: CgroupV1Provider> SystemStatsSource for CgroupV1Source<P> {
     fn get_num_cpus(&self) -> io::Result<f64> {
-        debug!("Using cgroup v1 for the number of CPUs");
         num_cpus::get_num_cpus(&self.provider)
     }
 
     fn get_cpu_usage(&self) -> io::Result<CpuUsageValue> {
-        debug!("Using cgroup v1 for CPU usage");
         cpu_usage::get_cpu_usage(&self.provider)
     }
 
     fn get_memory_usage_kb(&self) -> io::Result<u64> {
-        debug!("Using cgroup v1 for memory usage");
         memory_current::get_memory_usage_kb(&self.provider)
     }
 
     fn get_memory_total_kb(&self) -> io::Result<u64> {
-        debug!("Using cgroup v1 for memory total");
         memory_max::get_memory_max_kb(&self.provider)
-    }
-
-    fn is_available_for(&self, resource_type: &ResourceType) -> bool {
-        self.provider.is_available_for(resource_type)
     }
 }
 
@@ -120,7 +111,6 @@ pub trait CgroupV1Provider {
     fn get_cgroup_v1_memory_usage_in_bytes(&self) -> io::Result<String>;
     fn get_cgroup_v1_memory_limit_in_bytes(&self) -> io::Result<String>;
     fn get_cgroup_v1_memory_stat(&self) -> io::Result<Vec<String>>;
-    fn is_available_for(&self, resource_type: &ResourceType) -> bool;
 }
 
 impl CgroupV1Provider for CgroupV1FilesystemReader {
@@ -209,106 +199,5 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
 
         let file = File::open(file_path)?;
         BufReader::new(file).lines().collect()
-    }
-
-    fn is_available_for(&self, resource_type: &ResourceType) -> bool {
-        match resource_type {
-            ResourceType::NumCpus => {
-                self.get_cgroup_v1_cpu_cfs_quota().is_ok()
-                    && self.get_cgroup_v1_cpu_cfs_period().is_ok()
-            }
-            ResourceType::CpuUsage => self.get_cgroup_v1_cpuacct_usage().is_ok(),
-            ResourceType::MemoryUsageKb => self.get_cgroup_v1_memory_usage_in_bytes().is_ok(),
-            ResourceType::MemoryTotalKb => {
-                // TODO: this does not take into account that these can be "no limit"
-                self.get_cgroup_v1_memory_limit_in_bytes().is_ok()
-                    || self.get_cgroup_v1_memory_stat().is_ok()
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_all_available() -> io::Result<()> {
-        let temp_dir = tempdir()?;
-        let temp_path = temp_dir.path();
-
-        let cpu_path = temp_path.join("cpu,cpuacct");
-        let cpuacct_path = cpu_path.clone();
-        let memory_path = temp_path.join("memory");
-        std::fs::create_dir_all(&cpu_path)?;
-        std::fs::create_dir_all(&memory_path)?;
-
-        let cpu_quota_path = cpu_path.join("cpu.cfs_quota_us");
-        let mut file = File::create(&cpu_quota_path)?;
-        file.write_all(b"100001\n")?;
-
-        let cpu_period_path = cpu_path.join("cpu.cfs_period_us");
-        let mut file = File::create(&cpu_period_path)?;
-        file.write_all(b"100002\n")?;
-
-        let cpuacct_usage_path = cpuacct_path.join("cpuacct.usage");
-        let mut file = File::create(&cpuacct_usage_path)?;
-        file.write_all(b"100003\n")?;
-
-        let mem_usage_path = memory_path.join("memory.usage_in_bytes");
-        let mut file = File::create(&mem_usage_path)?;
-        file.write_all(b"100004\n")?;
-
-        let mem_limit_path = memory_path.join("memory.limit_in_bytes");
-        let mut file = File::create(&mem_limit_path)?;
-        file.write_all(b"100005\n")?;
-
-        let mount_points = CgroupV1MountPoints {
-            cpu: Some(cpu_path),
-            cpuacct: Some(cpuacct_path),
-            memory: Some(memory_path),
-        };
-        let reader = CgroupV1FilesystemReader::new(mount_points);
-        assert!(reader.is_available_for(&ResourceType::NumCpus));
-        assert!(reader.is_available_for(&ResourceType::CpuUsage));
-        assert!(reader.is_available_for(&ResourceType::MemoryUsageKb));
-        assert!(reader.is_available_for(&ResourceType::MemoryTotalKb));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_memory_max_can_be_read_from_memory_stat_too() -> io::Result<()> {
-        let temp_dir = tempdir()?;
-        let temp_path = temp_dir.path();
-
-        let memory_path = temp_path.join("memory");
-        std::fs::create_dir_all(&memory_path)?;
-
-        let mem_stats_path = memory_path.join("memory.stat");
-        let mut file = File::create(&mem_stats_path)?;
-        file.write_all(b"abc 123\ndef 456")?;
-
-        let mount_points = CgroupV1MountPoints {
-            cpu: None,
-            cpuacct: None,
-            memory: Some(memory_path),
-        };
-        let reader = CgroupV1FilesystemReader::new(mount_points);
-        assert!(reader.is_available_for(&ResourceType::MemoryTotalKb));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_nothing_available() {
-        let mount_points = CgroupV1MountPoints::default();
-        let reader = CgroupV1FilesystemReader::new(mount_points);
-        assert!(!reader.is_available_for(&ResourceType::NumCpus));
-        assert!(!reader.is_available_for(&ResourceType::CpuUsage));
-        assert!(!reader.is_available_for(&ResourceType::MemoryUsageKb));
-        assert!(!reader.is_available_for(&ResourceType::MemoryTotalKb));
     }
 }

@@ -3,6 +3,7 @@ use crate::stats::cgroup_v1::CgroupV1Provider;
 use crate::stats::CpuUsageValue;
 use std::io;
 use std::time::{Duration, Instant};
+use tracing::debug;
 
 /// Get normalized CPU usage from cgroup v1
 pub fn get_cpu_usage<P: CgroupV1Provider>(provider: &P) -> io::Result<CpuUsageValue> {
@@ -26,6 +27,7 @@ pub fn get_cpu_usage<P: CgroupV1Provider>(provider: &P) -> io::Result<CpuUsageVa
     let delta_usage_ns = current.saturating_sub(initial) as f64;
 
     let normalized_usage = delta_usage_ns / elapsed_ns;
+    debug!("Using cgroup v1 for CPU usage");
     Ok(CpuUsageValue::FromCgroupV1(normalized_usage))
 }
 

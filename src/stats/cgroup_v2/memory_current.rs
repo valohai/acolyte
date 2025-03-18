@@ -1,12 +1,16 @@
 use crate::stats::cgroup_v2::CgroupV2Provider;
 use std::io;
+use tracing::debug;
 
 /// Get currently used memory from the cgroup v2 filesystem
 pub fn get_memory_current_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u64> {
     let memory_current_text = provider.get_cgroup_v2_memory_current()?;
 
     match memory_current_text.trim().parse::<u64>() {
-        Ok(mem_bytes) => Ok(mem_bytes / 1024),
+        Ok(mem_bytes) => {
+            debug!("Using cgroup v2 for memory usage");
+            Ok(mem_bytes / 1024)
+        }
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
             format!("Invalid memory.current format: {}", e),

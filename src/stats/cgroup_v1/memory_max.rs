@@ -16,6 +16,7 @@ pub fn get_memory_max_kb<P: CgroupV1Provider>(provider: &P) -> io::Result<u64> {
 
     match get_hierarchical_memory_limit(provider) {
         Ok(memory_limit) => {
+            debug!("Using cgroup v1 for memory max (hierarchical_memory_limit)");
             return Ok(memory_limit / 1024);
         }
         Err(e) => {
@@ -38,6 +39,7 @@ pub fn get_memory_max_kb<P: CgroupV1Provider>(provider: &P) -> io::Result<u64> {
     }
 
     let memory_limit_kb = memory_limit / 1024;
+    debug!("Using cgroup v1 for memory max (limit_in_bytes)");
     Ok(memory_limit_kb)
 }
 
