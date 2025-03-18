@@ -13,13 +13,6 @@ use proc::ProcSource;
 use std::io;
 use std::path::PathBuf;
 
-pub enum ResourceType {
-    NumCpus,
-    CpuUsage,
-    MemoryUsageKb,
-    MemoryTotalKb,
-}
-
 // TODO: see if we could make this a bit simpler or give these a better name
 pub enum CpuUsageValue {
     FromCgroupV2(f64), // normalized CPU usage i.e., 1.5 for one and a half CPUs busy
