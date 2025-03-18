@@ -3,6 +3,7 @@ mod cpu_usage;
 mod memory_current;
 mod memory_max;
 mod num_cpus;
+use crate::utils::read_first_line;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -77,30 +78,15 @@ impl CgroupV2Provider for CgroupV2FilesystemReader {
     }
 
     fn get_cgroup_v2_cpu_max(&self) -> io::Result<String> {
-        let file = File::open(self.cpu_max_path())?;
-        let mut reader = BufReader::new(file);
-        // `cpu.max` file is just a single line...
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(self.cpu_max_path())
     }
 
     fn get_cgroup_v2_memory_current(&self) -> io::Result<String> {
-        let file = File::open(self.mem_current_path())?;
-        let mut reader = BufReader::new(file);
-        // `memory.current` file is just a single line...
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(self.mem_current_path())
     }
 
     fn get_cgroup_v2_memory_max(&self) -> io::Result<String> {
-        let file = File::open(self.mem_max_path())?;
-        let mut reader = BufReader::new(file);
-        // `memory.max` file is just a single line...
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(self.mem_max_path())
     }
 }
 

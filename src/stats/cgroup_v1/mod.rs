@@ -3,6 +3,7 @@ mod cpu_usage;
 mod memory_current;
 mod memory_max;
 mod num_cpus;
+use crate::utils::read_first_line;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -122,11 +123,7 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
             ));
         };
 
-        let file = File::open(file_path)?;
-        let mut reader = BufReader::new(file);
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(file_path)
     }
 
     fn get_cgroup_v1_cpu_cfs_period(&self) -> io::Result<String> {
@@ -137,11 +134,7 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
             ));
         };
 
-        let file = File::open(file_path)?;
-        let mut reader = BufReader::new(file);
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(file_path)
     }
 
     fn get_cgroup_v1_cpuacct_usage(&self) -> io::Result<String> {
@@ -152,11 +145,7 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
             ));
         };
 
-        let file = File::open(file_path)?;
-        let mut reader = BufReader::new(file);
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(file_path)
     }
 
     fn get_cgroup_v1_memory_usage_in_bytes(&self) -> io::Result<String> {
@@ -167,11 +156,7 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
             ));
         };
 
-        let file = File::open(file_path)?;
-        let mut reader = BufReader::new(file);
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(file_path)
     }
 
     fn get_cgroup_v1_memory_limit_in_bytes(&self) -> io::Result<String> {
@@ -182,11 +167,7 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
             ));
         };
 
-        let file = File::open(file_path)?;
-        let mut reader = BufReader::new(file);
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        Ok(line)
+        read_first_line(file_path)
     }
 
     fn get_cgroup_v1_memory_stat(&self) -> io::Result<Vec<String>> {

@@ -1,6 +1,7 @@
 pub mod env;
 pub mod stats;
 pub mod store;
+pub mod utils;
 
 use crate::stats::{
     CgroupVersion, CpuUsageValue, detect_cgroup_version, get_cgroup_v1_mount_points,
