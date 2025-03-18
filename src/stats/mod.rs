@@ -1,3 +1,4 @@
+mod cgroup_v1;
 mod cgroup_v2;
 mod nvidia_smi;
 mod paths;
@@ -78,8 +79,11 @@ fn get_best_system_stats_source_for(
     }
 
     if Some(CgroupVersion::V1) == detected_cgroup {
-        if let Ok(_v1_mount_points) = get_cgroup_v1_mount_points("/proc/mounts") {
-            todo!();
+        if let Ok(v1_mount_points) = get_cgroup_v1_mount_points("/proc/mounts") {
+            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
+            if source.is_available_for(&resource_type) {
+                return Some(Box::new(source));
+            };
         }
     }
 

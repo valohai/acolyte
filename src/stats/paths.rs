@@ -1,3 +1,4 @@
+use crate::stats::cgroup_v1::CgroupV1MountPoints;
 use crate::stats::CgroupVersion;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -27,13 +28,6 @@ pub fn get_cgroup_v2_mount_point<P: AsRef<Path>>(proc_mounts_path: P) -> io::Res
         io::ErrorKind::NotFound,
         "No cgroup v2 mount point found",
     ))
-}
-
-#[derive(Default)]
-pub struct CgroupV1MountPoints {
-    cpu: Option<PathBuf>,
-    cpuacct: Option<PathBuf>,
-    memory: Option<PathBuf>,
 }
 
 /// Return the mount points for the cgroup v1 hierarchy.
