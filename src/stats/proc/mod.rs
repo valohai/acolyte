@@ -3,10 +3,10 @@ mod memory;
 mod num_cpus;
 
 use crate::stats::{CpuUsageValue, SystemStatsSource};
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self};
 use std::path::PathBuf;
 
+use crate::utils::read_all_lines;
 #[cfg(test)]
 use mockall::automock;
 use tracing::debug;
@@ -71,13 +71,11 @@ impl ProcFilesystemReader {
 
 impl ProcProvider for ProcFilesystemReader {
     fn get_proc_stat(&self) -> io::Result<Vec<String>> {
-        let file = File::open(self.proc_stat_path())?;
-        BufReader::new(file).lines().collect()
+        read_all_lines(self.proc_stat_path())
     }
 
     fn get_proc_meminfo(&self) -> io::Result<Vec<String>> {
-        let file = File::open(self.proc_meminfo_path())?;
-        BufReader::new(file).lines().collect()
+        read_all_lines(self.proc_meminfo_path())
     }
 }
 

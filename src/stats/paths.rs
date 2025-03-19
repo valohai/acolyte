@@ -96,6 +96,10 @@ pub fn detect_cgroup_version<P: AsRef<Path>>(self_cgroup_path: P) -> io::Result<
         } else {
             has_v1_entries = true;
         }
+        if has_v1_entries && has_v2_entries {
+            // Got both, can quit early.
+            break;
+        }
     }
 
     if has_v1_entries && has_v2_entries {
