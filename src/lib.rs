@@ -7,8 +7,7 @@ use crate::stats::cgroup_v1::CgroupV1Source;
 use crate::stats::cgroup_v2::CgroupV2Source;
 use crate::stats::proc::ProcSource;
 use crate::stats::{
-    CpuUsageValue, SystemStatsSource, detect_cgroup_version, get_cgroup_v1_mount_points,
-    get_cgroup_v2_mount_point,
+    SystemStatsSource, detect_cgroup_version, get_cgroup_v1_mount_points, get_cgroup_v2_mount_point,
 };
 use crate::store::StatsEntry;
 use std::path::PathBuf;
@@ -31,23 +30,7 @@ pub fn run_acolyte() {
             .iter()
             .find_map(|source| source.get_cpu_usage().ok())
         {
-            // scale the cpu usage by the number of cpus
-            // so that 100% cpu usage on a 4 core machine is 4.0 etc.
-            let normalized_cpu_usage = match cpu_usage {
-                CpuUsageValue::FromCgroupV2(cgroup_usage) => Some(cgroup_usage),
-                CpuUsageValue::FromCgroupV1(cgroup_usage) => Some(cgroup_usage),
-                CpuUsageValue::FromProc(proc_usage) => {
-                    // for the `procfs` values to report the number in the right format,
-                    // we MUST know the number of cpus or the number will be misleading
-                    if let Some(num_cpus) = stats_entry.num_cpus {
-                        Some(proc_usage * num_cpus)
-                    } else {
-                        debug!("Failed to get number of CPUs, skipping procfs CPU usage");
-                        None
-                    }
-                }
-            };
-            stats_entry.cpu_usage = normalized_cpu_usage;
+            stats_entry.cpu_usage = cpu_usage.normalize(stats_entry.num_cpus);
         }
 
         if let Some(mem_usage_kb) = sources

@@ -9,12 +9,34 @@ pub use crate::stats::paths::{
 };
 use nvidia_smi::NvidiaSmiExecutor;
 use std::io;
+use tracing::debug;
 
 // TODO: see if we could make this a bit simpler or give these a better name
 pub enum CpuUsageValue {
     FromCgroupV2(f64), // normalized CPU usage i.e., 1.5 for one and a half CPUs busy
     FromCgroupV1(f64), // normalized CPU usage, like the V2 above
     FromProc(f64),     // fractional CPU usage i.e., 0.75 for 75% of all CPUs busy
+}
+
+impl CpuUsageValue {
+    // scale the cpu usage by the number of cpus
+    // so that 100% cpu usage on a 4 core machine is 4.0 etc.
+    pub fn normalize(self, num_cpus: Option<f64>) -> Option<f64> {
+        match self {
+            CpuUsageValue::FromCgroupV2(cgroup_usage) => Some(cgroup_usage),
+            CpuUsageValue::FromCgroupV1(cgroup_usage) => Some(cgroup_usage),
+            CpuUsageValue::FromProc(proc_usage) => {
+                // for the `procfs` values to report the number in the right format,
+                // we MUST know the number of cpus or the number will be misleading
+                if let Some(num_cpus) = num_cpus {
+                    Some(proc_usage * num_cpus)
+                } else {
+                    debug!("Failed to get number of CPUs, skipping procfs CPU usage");
+                    None
+                }
+            }
+        }
+    }
 }
 
 pub struct GpuStats {
