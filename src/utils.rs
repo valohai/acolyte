@@ -9,3 +9,9 @@ pub fn read_first_line<P: AsRef<Path>>(path: P) -> io::Result<String> {
     reader.read_line(&mut line)?;
     Ok(line)
 }
+
+pub fn read_all_lines<P: AsRef<Path>>(path: P) -> io::Result<Vec<String>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    reader.lines().collect()
+}

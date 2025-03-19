@@ -3,9 +3,8 @@ mod cpu_usage;
 mod memory_current;
 mod memory_max;
 mod num_cpus;
-use crate::utils::read_first_line;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use crate::utils::{read_all_lines, read_first_line};
+use std::io::{self};
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -65,8 +64,7 @@ impl CgroupV2FilesystemReader {
 
 impl CgroupV2Provider for CgroupV2FilesystemReader {
     fn get_cgroup_v2_cpu_stat(&self) -> io::Result<Vec<String>> {
-        let file = File::open(&self.cpu_stat_path)?;
-        BufReader::new(file).lines().collect()
+        read_all_lines(&self.cpu_stat_path)
     }
 
     fn get_cgroup_v2_cpu_max(&self) -> io::Result<String> {

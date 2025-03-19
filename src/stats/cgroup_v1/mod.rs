@@ -3,9 +3,8 @@ mod cpu_usage;
 mod memory_current;
 mod memory_max;
 mod num_cpus;
-use crate::utils::read_first_line;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use crate::utils::{read_all_lines, read_first_line};
+use std::io::{self};
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -232,8 +231,6 @@ impl CgroupV1Provider for CgroupV1FilesystemReader {
                 "memory.stat file not found",
             ));
         };
-
-        let file = File::open(file_path)?;
-        BufReader::new(file).lines().collect()
+        read_all_lines(file_path)
     }
 }
