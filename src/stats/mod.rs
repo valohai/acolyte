@@ -1,17 +1,14 @@
-mod cgroup_v1;
-mod cgroup_v2;
+pub(crate) mod cgroup_v1;
+pub(crate) mod cgroup_v2;
 mod nvidia_smi;
 mod paths;
-mod proc;
+pub(crate) mod proc;
 
-use crate::stats::cgroup_v1::CgroupV1MountPoints;
 pub use crate::stats::paths::{
     detect_cgroup_version, get_cgroup_v1_mount_points, get_cgroup_v2_mount_point,
 };
 use nvidia_smi::NvidiaSmiExecutor;
-use proc::ProcSource;
 use std::io;
-use std::path::PathBuf;
 
 // TODO: see if we could make this a bit simpler or give these a better name
 pub enum CpuUsageValue {
@@ -49,58 +46,6 @@ impl CgroupVersion {
     }
 }
 
-pub fn get_num_cpus(
-    cgroup_version: Option<CgroupVersion>,
-    cgroup_v2_mount_point: Option<PathBuf>,
-    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
-) -> Option<f64> {
-    get_resource_with_fallback(
-        cgroup_version,
-        cgroup_v2_mount_point,
-        cgroup_v1_mount_points,
-        |source| source.get_num_cpus(),
-    )
-}
-
-pub fn get_cpu_usage(
-    cgroup_version: Option<CgroupVersion>,
-    cgroup_v2_mount_point: Option<PathBuf>,
-    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
-) -> Option<CpuUsageValue> {
-    get_resource_with_fallback(
-        cgroup_version,
-        cgroup_v2_mount_point,
-        cgroup_v1_mount_points,
-        |source| source.get_cpu_usage(),
-    )
-}
-
-pub fn get_memory_usage_kb(
-    cgroup_version: Option<CgroupVersion>,
-    cgroup_v2_mount_point: Option<PathBuf>,
-    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
-) -> Option<u64> {
-    get_resource_with_fallback(
-        cgroup_version,
-        cgroup_v2_mount_point,
-        cgroup_v1_mount_points,
-        |source| source.get_memory_usage_kb(),
-    )
-}
-
-pub fn get_memory_total_kb(
-    cgroup_version: Option<CgroupVersion>,
-    cgroup_v2_mount_point: Option<PathBuf>,
-    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
-) -> Option<u64> {
-    get_resource_with_fallback(
-        cgroup_version,
-        cgroup_v2_mount_point,
-        cgroup_v1_mount_points,
-        |source| source.get_memory_total_kb(),
-    )
-}
-
 pub fn get_gpu_stats() -> Option<GpuStats> {
     // we only support NVIDIA GPUs for now so no need to check for other sources
     let executor = NvidiaSmiExecutor::new();
@@ -112,35 +57,4 @@ pub trait SystemStatsSource {
     fn get_cpu_usage(&self) -> io::Result<CpuUsageValue>;
     fn get_memory_usage_kb(&self) -> io::Result<u64>;
     fn get_memory_total_kb(&self) -> io::Result<u64>;
-}
-
-fn get_resource_with_fallback<T, F>(
-    cgroup_version: Option<CgroupVersion>,
-    cgroup_v2_mount_point: Option<PathBuf>,
-    cgroup_v1_mount_points: Option<CgroupV1MountPoints>,
-    stat_getter: F,
-) -> Option<T>
-where
-    F: Fn(&dyn SystemStatsSource) -> io::Result<T>,
-{
-    if cgroup_version.as_ref().filter(|v| v.has_v2()).is_some() {
-        if let Some(v2_mount_point) = cgroup_v2_mount_point {
-            let source = cgroup_v2::CgroupV2Source::with_filesystem_reader_at(v2_mount_point);
-            if let Ok(result) = stat_getter(&source) {
-                return Some(result);
-            }
-        }
-    }
-
-    if cgroup_version.as_ref().filter(|v| v.has_v1()).is_some() {
-        if let Some(v1_mount_points) = cgroup_v1_mount_points {
-            let source = cgroup_v1::CgroupV1Source::with_filesystem_reader_at(v1_mount_points);
-            if let Ok(result) = stat_getter(&source) {
-                return Some(result);
-            }
-        }
-    }
-
-    let source = ProcSource::with_filesystem_reader_at(PathBuf::from("/proc"));
-    stat_getter(&source).ok()
 }
