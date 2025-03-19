@@ -46,47 +46,39 @@ impl<P: CgroupV2Provider> SystemStatsSource for CgroupV2Source<P> {
 }
 
 pub struct CgroupV2FilesystemReader {
-    cgroup_v2_path: PathBuf,
+    cpu_max_path: PathBuf,
+    cpu_stat_path: PathBuf,
+    mem_current_path: PathBuf,
+    mem_max_path: PathBuf,
 }
 
 impl CgroupV2FilesystemReader {
     fn new(cgroup_v2_path: PathBuf) -> Self {
-        Self { cgroup_v2_path }
-    }
-
-    fn cpu_max_path(&self) -> PathBuf {
-        self.cgroup_v2_path.join("cpu.max")
-    }
-
-    fn cpu_stat_path(&self) -> PathBuf {
-        self.cgroup_v2_path.join("cpu.stat")
-    }
-
-    fn mem_current_path(&self) -> PathBuf {
-        self.cgroup_v2_path.join("memory.current")
-    }
-
-    fn mem_max_path(&self) -> PathBuf {
-        self.cgroup_v2_path.join("memory.max")
+        Self {
+            cpu_max_path: cgroup_v2_path.join("cpu.max"),
+            cpu_stat_path: cgroup_v2_path.join("cpu.stat"),
+            mem_current_path: cgroup_v2_path.join("memory.current"),
+            mem_max_path: cgroup_v2_path.join("memory.max"),
+        }
     }
 }
 
 impl CgroupV2Provider for CgroupV2FilesystemReader {
     fn get_cgroup_v2_cpu_stat(&self) -> io::Result<Vec<String>> {
-        let file = File::open(self.cpu_stat_path())?;
+        let file = File::open(&self.cpu_stat_path)?;
         BufReader::new(file).lines().collect()
     }
 
     fn get_cgroup_v2_cpu_max(&self) -> io::Result<String> {
-        read_first_line(self.cpu_max_path())
+        read_first_line(&self.cpu_max_path)
     }
 
     fn get_cgroup_v2_memory_current(&self) -> io::Result<String> {
-        read_first_line(self.mem_current_path())
+        read_first_line(&self.mem_current_path)
     }
 
     fn get_cgroup_v2_memory_max(&self) -> io::Result<String> {
-        read_first_line(self.mem_max_path())
+        read_first_line(&self.mem_max_path)
     }
 }
 
