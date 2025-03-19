@@ -3,12 +3,11 @@ mod cpu_usage;
 mod memory_current;
 mod memory_max;
 mod num_cpus;
-use crate::utils::{read_all_lines, read_first_line};
-use std::io::{self};
-use std::path::PathBuf;
-
+use crate::utils::{get_path_or_croak, read_all_lines, read_first_line};
 #[cfg(test)]
 use mockall::automock;
+use std::io::{self};
+use std::path::PathBuf;
 
 #[derive(Default, Clone)]
 pub struct CgroupV1MountPoints {
@@ -64,30 +63,6 @@ impl CgroupV1MountPoints {
         self.memory_stat_path = memory.as_ref().map(|pb| pb.join("memory.stat"));
         self.memory = memory;
     }
-
-    pub fn cpu_quota_path(&self) -> Option<PathBuf> {
-        self.cpu_quota_path.clone()
-    }
-
-    pub fn cpu_period_path(&self) -> Option<PathBuf> {
-        self.cpu_period_path.clone()
-    }
-
-    pub fn cpu_usage_path(&self) -> Option<PathBuf> {
-        self.cpu_usage_path.clone()
-    }
-
-    pub fn memory_usage_path(&self) -> Option<PathBuf> {
-        self.memory_usage_path.clone()
-    }
-
-    pub fn memory_limit_path(&self) -> Option<PathBuf> {
-        self.memory_limit_path.clone()
-    }
-
-    pub fn memory_stat_path(&self) -> Option<PathBuf> {
-        self.memory_stat_path.clone()
-    }
 }
 
 pub struct CgroupV1Source<P: CgroupV1Provider> {
@@ -132,30 +107,6 @@ impl CgroupV1FilesystemReader {
     fn new(mount_points: CgroupV1MountPoints) -> Self {
         Self { mount_points }
     }
-
-    fn cpu_quota_path(&self) -> Option<PathBuf> {
-        self.mount_points.cpu_quota_path()
-    }
-
-    fn cpu_period_path(&self) -> Option<PathBuf> {
-        self.mount_points.cpu_period_path()
-    }
-
-    fn cpu_usage(&self) -> Option<PathBuf> {
-        self.mount_points.cpu_usage_path()
-    }
-
-    fn memory_usage_path(&self) -> Option<PathBuf> {
-        self.mount_points.memory_usage_path()
-    }
-
-    fn memory_limit_path(&self) -> Option<PathBuf> {
-        self.mount_points.memory_limit_path()
-    }
-
-    fn memory_stat_path(&self) -> Option<PathBuf> {
-        self.mount_points.memory_stat_path()
-    }
 }
 
 #[cfg_attr(test, automock)]
@@ -170,67 +121,44 @@ pub trait CgroupV1Provider {
 
 impl CgroupV1Provider for CgroupV1FilesystemReader {
     fn get_cgroup_v1_cpu_cfs_quota(&self) -> io::Result<String> {
-        let Some(file_path) = self.cpu_quota_path() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "cpu.cfs_quota_us file not found",
-            ));
-        };
-
-        read_first_line(file_path)
+        read_first_line(get_path_or_croak(
+            &self.mount_points.cpu_quota_path,
+            "cpu.cfs_quota_us",
+        )?)
     }
 
     fn get_cgroup_v1_cpu_cfs_period(&self) -> io::Result<String> {
-        let Some(file_path) = self.cpu_period_path() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "cpu.cfs_period_us file not found",
-            ));
-        };
-
-        read_first_line(file_path)
+        read_first_line(get_path_or_croak(
+            &self.mount_points.cpu_period_path,
+            "cpu.cfs_period_us",
+        )?)
     }
 
     fn get_cgroup_v1_cpuacct_usage(&self) -> io::Result<String> {
-        let Some(file_path) = self.cpu_usage() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "cpuacct.usage file not found",
-            ));
-        };
-
-        read_first_line(file_path)
+        read_first_line(get_path_or_croak(
+            &self.mount_points.cpu_usage_path,
+            "cpuacct.usage",
+        )?)
     }
 
     fn get_cgroup_v1_memory_usage_in_bytes(&self) -> io::Result<String> {
-        let Some(file_path) = self.memory_usage_path() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "memory.usage_in_bytes file not found",
-            ));
-        };
-
-        read_first_line(file_path)
+        read_first_line(get_path_or_croak(
+            &self.mount_points.memory_usage_path,
+            "memory.usage_in_bytes",
+        )?)
     }
 
     fn get_cgroup_v1_memory_limit_in_bytes(&self) -> io::Result<String> {
-        let Some(file_path) = self.memory_limit_path() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "memory.limit_in_bytes file not found",
-            ));
-        };
-
-        read_first_line(file_path)
+        read_first_line(get_path_or_croak(
+            &self.mount_points.memory_limit_path,
+            "memory.limit_in_bytes",
+        )?)
     }
 
     fn get_cgroup_v1_memory_stat(&self) -> io::Result<Vec<String>> {
-        let Some(file_path) = self.memory_stat_path() else {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "memory.stat file not found",
-            ));
-        };
-        read_all_lines(file_path)
+        read_all_lines(get_path_or_croak(
+            &self.mount_points.memory_stat_path,
+            "memory.stat",
+        )?)
     }
 }
