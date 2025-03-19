@@ -21,7 +21,6 @@ pub fn get_memory_usage_and_total_kb<R: ProcProvider>(provider: &R) -> io::Resul
     }
 
     let memory_usage_kb = memory_total_kb.saturating_sub(available_kb);
-
     Ok((memory_usage_kb, memory_total_kb))
 }
 

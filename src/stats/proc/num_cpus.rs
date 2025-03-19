@@ -1,5 +1,6 @@
 use crate::stats::proc::ProcProvider;
 use std::io;
+use tracing::debug;
 
 /// Get the number of CPUs from the `/proc` filesystem (host-wide)
 pub fn get_num_cpus<R: ProcProvider>(provider: &R) -> io::Result<f64> {
@@ -12,6 +13,7 @@ pub fn get_num_cpus<R: ProcProvider>(provider: &R) -> io::Result<f64> {
         .filter(|line| line.starts_with("cpu") && !line.starts_with("cpu "))
         .count() as f64;
 
+    debug!("Using proc for CPU count");
     Ok(count)
 }
 

@@ -1,5 +1,6 @@
 use crate::stats::cgroup_v2::CgroupV2Provider;
 use std::io;
+use tracing::debug;
 
 /// Get total available memory from the cgroup v2 filesystem
 pub fn get_memory_max_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u64> {
@@ -13,7 +14,10 @@ pub fn get_memory_max_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u64> {
     }
 
     match memory_max_text.trim().parse::<u64>() {
-        Ok(mem_bytes) => Ok(mem_bytes / 1024),
+        Ok(mem_bytes) => {
+            debug!("Using cgroup v2 for memory max");
+            Ok(mem_bytes / 1024)
+        }
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
             format!("Invalid memory.max format: {}", e),
