@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 libc = "0.2.170"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 # reqwest instead of libcurl, rustls instead of expecting openssl, the rest are Sentry features we want
 sentry = { version = "0.36.0", default-features = false, features = ["tracing", "reqwest", "rustls", "backtrace", "panic"] }
 sentry-tracing = "0.36.0"
