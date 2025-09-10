@@ -17,8 +17,7 @@ pub fn get_cpu_usage<P: CgroupV1Provider>(provider: &P) -> io::Result<CpuUsageVa
     // wall-clock time between the two readings
     let elapsed_ns = start_time.elapsed().as_nanos() as f64;
     if elapsed_ns <= 0.0 {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "Elapsed time between CPU measurements was zero or negative",
         ));
     }
@@ -37,7 +36,7 @@ fn get_cpu_usage_ns<P: CgroupV1Provider>(provider: &P) -> io::Result<u64> {
         Ok(usage_ns) => Ok(usage_ns),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid cpuacct.usage format: {}", e),
+            format!("Invalid cpuacct.usage format: {e}"),
         )),
     }
 }

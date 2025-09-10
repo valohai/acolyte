@@ -13,7 +13,7 @@ pub fn get_memory_usage_kb<P: CgroupV1Provider>(provider: &P) -> io::Result<u64>
         }
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid memory.usage_in_bytes format: {}", e),
+            format!("Invalid memory.usage_in_bytes format: {e}"),
         )),
     }
 }

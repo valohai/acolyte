@@ -16,7 +16,7 @@ pub fn get_num_cpus<P: CgroupV1Provider>(provider: &P) -> io::Result<f64> {
     let quota: i64 = quota_text.trim().parse().map_err(|e| {
         io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid cpu.cfs_quota_us format: {}", e),
+            format!("Invalid cpu.cfs_quota_us format: {e}"),
         )
     })?;
     if quota <= 0 {
@@ -29,7 +29,7 @@ pub fn get_num_cpus<P: CgroupV1Provider>(provider: &P) -> io::Result<f64> {
     let period: u64 = period_text.trim().parse().map_err(|e| {
         io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid cpu.cfs_period_us format: {}", e),
+            format!("Invalid cpu.cfs_period_us format: {e}"),
         )
     })?;
     if period == 0 {

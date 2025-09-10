@@ -59,7 +59,7 @@ pub fn write_stats_entry(entry: StatsEntry) -> io::Result<()> {
     ensure_dir_exists(&dir_path)?;
 
     let timestamp_ms = (entry.time * 1000.0) as u64;
-    let filename = format!("stats-{}.json", timestamp_ms);
+    let filename = format!("stats-{timestamp_ms}.json");
     let file_path = dir_path.join(filename);
 
     let as_json = serde_json::to_string_pretty(&entry)?;
