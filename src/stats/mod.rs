@@ -9,6 +9,7 @@ pub use crate::stats::paths::{
 };
 use nvidia_smi::NvidiaSmiExecutor;
 use std::io;
+use std::time::Duration;
 use tracing::debug;
 
 // TODO: see if we could make this a bit simpler or give these a better name
@@ -76,7 +77,7 @@ pub fn get_gpu_stats() -> Option<GpuStats> {
 
 pub trait SystemStatsSource {
     fn get_num_cpus(&self) -> io::Result<f64>;
-    fn get_cpu_usage(&self) -> io::Result<CpuUsageValue>;
+    fn get_cpu_usage(&self, sample_interval: Duration) -> io::Result<CpuUsageValue>;
     fn get_memory_usage_kb(&self) -> io::Result<u64>;
     fn get_memory_total_kb(&self) -> io::Result<u64>;
 }

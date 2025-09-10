@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use uuid::Uuid;
 
-pub const MAX_RUN_ATTEMPTS: u8 = 5;
-pub const RESTART_DELAY_SECS: u64 = 10;
+const NO_RESTART_ENV_VAR: &str = "ACOLYTE_NO_RESTART";
 
 pub const RESTART_ENV_VAR: &str = "ACOLYTE_RESTART";
 pub const ID_ENV_VAR: &str = "ACOLYTE_ID";
@@ -15,6 +14,12 @@ pub fn get_sentry_dsn() -> Option<String> {
 
 pub fn get_cluster_name() -> String {
     env::var("CLUSTER_NAME").unwrap_or_else(|_| "Unknown".to_string())
+}
+
+pub fn is_no_restart() -> bool {
+    env::var(NO_RESTART_ENV_VAR)
+        .map(|v| !v.is_empty())
+        .unwrap_or(false)
 }
 
 pub fn get_restart_count() -> u8 {

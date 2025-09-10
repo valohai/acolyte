@@ -13,7 +13,7 @@ pub fn get_memory_current_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u6
         }
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid memory.current format: {}", e),
+            format!("Invalid memory.current format: {e}"),
         )),
     }
 }

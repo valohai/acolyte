@@ -1,4 +1,3 @@
-use crate::env;
 use crate::stats::CpuUsageValue;
 use crate::stats::cgroup_v1::CgroupV1Provider;
 use std::io;
@@ -6,19 +5,21 @@ use std::time::{Duration, Instant};
 use tracing::debug;
 
 /// Get normalized CPU usage from cgroup v1
-pub fn get_cpu_usage<P: CgroupV1Provider>(provider: &P) -> io::Result<CpuUsageValue> {
+pub fn get_cpu_usage<P: CgroupV1Provider>(
+    provider: &P,
+    sample_interval: Duration,
+) -> io::Result<CpuUsageValue> {
     let start_time = Instant::now();
 
     // NB: cgroup v1 reports these cpu times in nanoseconds, unlike cgroup v2's microseconds
     let initial = get_cpu_usage_ns(provider)?;
-    std::thread::sleep(Duration::from_millis(env::get_cpu_sample_ms()));
+    std::thread::sleep(sample_interval);
     let current = get_cpu_usage_ns(provider)?;
 
     // wall-clock time between the two readings
     let elapsed_ns = start_time.elapsed().as_nanos() as f64;
     if elapsed_ns <= 0.0 {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "Elapsed time between CPU measurements was zero or negative",
         ));
     }
@@ -37,7 +38,7 @@ fn get_cpu_usage_ns<P: CgroupV1Provider>(provider: &P) -> io::Result<u64> {
         Ok(usage_ns) => Ok(usage_ns),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid cpuacct.usage format: {}", e),
+            format!("Invalid cpuacct.usage format: {e}"),
         )),
     }
 }

@@ -28,7 +28,7 @@ pub fn get_memory_max_kb<P: CgroupV1Provider>(provider: &P) -> io::Result<u64> {
     let memory_limit = memory_limit_text.trim().parse::<u64>().map_err(|e| {
         io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid memory.limit_in_bytes format: {}", e),
+            format!("Invalid memory.limit_in_bytes format: {e}"),
         )
     })?;
     if memory_limit >= get_no_limit_value() {

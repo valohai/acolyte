@@ -111,7 +111,7 @@ pub fn detect_cgroup_version<P: AsRef<Path>>(self_cgroup_path: P) -> io::Result<
     } else {
         Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("No valid cgroup entries found in: {}", content),
+            format!("No valid cgroup entries found in: {content}"),
         ))
     }
 }

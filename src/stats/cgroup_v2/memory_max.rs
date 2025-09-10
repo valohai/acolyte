@@ -20,7 +20,7 @@ pub fn get_memory_max_kb<P: CgroupV2Provider>(provider: &P) -> io::Result<u64> {
         }
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid memory.max format: {}", e),
+            format!("Invalid memory.max format: {e}"),
         )),
     }
 }

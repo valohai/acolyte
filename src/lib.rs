@@ -1,8 +1,10 @@
-pub mod env;
+pub mod config;
+pub mod consts;
 pub mod stats;
 pub mod store;
 pub mod utils;
 
+use crate::config::Config;
 use crate::stats::cgroup_v1::CgroupV1Source;
 use crate::stats::cgroup_v2::CgroupV2Source;
 use crate::stats::proc::ProcSource;
@@ -14,9 +16,7 @@ use std::path::PathBuf;
 use std::thread;
 use tracing::{debug, error};
 
-pub fn run_acolyte() {
-    let stat_interval = env::get_stat_interval();
-
+pub fn run_acolyte(config: &Config) {
     let sources = get_sources();
 
     loop {
@@ -28,7 +28,7 @@ pub fn run_acolyte() {
 
         if let Some(cpu_usage) = sources
             .iter()
-            .find_map(|source| source.get_cpu_usage().ok())
+            .find_map(|source| source.get_cpu_usage(config.cpu_sample_interval).ok())
         {
             stats_entry.cpu_usage = cpu_usage.normalize(stats_entry.num_cpus);
         }
@@ -55,11 +55,11 @@ pub fn run_acolyte() {
         }
 
         debug!("New stats entry: {:?}", stats_entry);
-        if let Err(e) = store::write_stats_entry(stats_entry) {
+        if let Err(e) = store::write_stats_entry(stats_entry, config) {
             error!("Failed to write stats entry: {}", e);
         }
 
-        thread::sleep(stat_interval);
+        thread::sleep(config.stat_interval);
     }
 }
 

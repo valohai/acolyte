@@ -17,7 +17,7 @@ pub fn get_num_cpus<P: CgroupV2Provider>(provider: &P) -> io::Result<f64> {
     if parts.len() != 2 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid cpu.max format: {}", cpu_max_text),
+            format!("Invalid cpu.max format: {cpu_max_text}"),
         ));
     }
 
@@ -36,7 +36,7 @@ pub fn get_num_cpus<P: CgroupV2Provider>(provider: &P) -> io::Result<f64> {
         Err(e) => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Failed to parse CPU quota '{}': {}", quota_str, e),
+                format!("Failed to parse CPU quota '{quota_str}': {e}"),
             ));
         }
     };
@@ -46,7 +46,7 @@ pub fn get_num_cpus<P: CgroupV2Provider>(provider: &P) -> io::Result<f64> {
         Err(e) => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Failed to parse CPU period '{}': {}", period_str, e),
+                format!("Failed to parse CPU period '{period_str}': {e}"),
             ));
         }
     };

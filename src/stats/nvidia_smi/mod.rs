@@ -32,19 +32,16 @@ impl NvidiaSmiProvider for NvidiaSmiExecutor {
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("Failed to run nvidia-smi: {}", e),
+                    format!("Failed to run nvidia-smi: {e}"),
                 )
             })?;
 
         if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "nvidia-smi exited with non-zero status: {}. stderr: {}",
-                    output.status,
-                    String::from_utf8_lossy(&output.stderr)
-                ),
-            ));
+            return Err(io::Error::other(format!(
+                "nvidia-smi exited with non-zero status: {}. stderr: {}",
+                output.status,
+                String::from_utf8_lossy(&output.stderr)
+            )));
         }
 
         debug!("Using nvidia-smi for GPU stats"); // report use here as we don't check for nvidia-smi availability

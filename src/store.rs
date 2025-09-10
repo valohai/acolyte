@@ -1,4 +1,4 @@
-use crate::env;
+use crate::config::{Config, StatsDirConfig};
 use serde::Serialize;
 use std::fs::{self, File};
 use std::io::{self, Write};
@@ -54,19 +54,33 @@ impl StatsEntry {
     }
 }
 
-pub fn write_stats_entry(entry: StatsEntry) -> io::Result<()> {
-    let dir_path = env::get_stats_dir();
-    ensure_dir_exists(&dir_path)?;
+pub fn write_stats_entry(entry: StatsEntry, config: &Config) -> io::Result<()> {
+    match &config.output_mode {
+        crate::config::OutputMode::JsonlToStdout(jsonl_config) => {
+            let prefix = &jsonl_config.prefix;
+            let as_json = serde_json::to_string(&entry)?;
+            println!("{prefix}{as_json}");
+            Ok(())
+        }
+        crate::config::OutputMode::StatsDir(stats_dir_config) => {
+            write_stats_dir_entry(entry, stats_dir_config)
+        }
+    }
+}
+
+fn write_stats_dir_entry(entry: StatsEntry, stats_dir_config: &StatsDirConfig) -> io::Result<()> {
+    let dir_path = &stats_dir_config.dir;
+    ensure_dir_exists(dir_path)?;
 
     let timestamp_ms = (entry.time * 1000.0) as u64;
-    let filename = format!("stats-{}.json", timestamp_ms);
+    let filename = format!("stats-{timestamp_ms}.json");
     let file_path = dir_path.join(filename);
 
     let as_json = serde_json::to_string_pretty(&entry)?;
     let mut json_file = File::create(file_path)?;
     json_file.write_all(as_json.as_bytes())?;
 
-    clean_up_old_stats_entries(&dir_path)?;
+    clean_up_old_stats_entries(dir_path, stats_dir_config.max_stats_entries)?;
     Ok(())
 }
 
@@ -78,9 +92,7 @@ fn ensure_dir_exists(dir_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn clean_up_old_stats_entries(dir_path: &Path) -> io::Result<()> {
-    let max_entries = env::get_max_stats_entries();
-
+fn clean_up_old_stats_entries(dir_path: &Path, max_entries: usize) -> io::Result<()> {
     let mut entries: Vec<PathBuf> = fs::read_dir(dir_path)?
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
