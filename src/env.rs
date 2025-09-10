@@ -3,9 +3,6 @@ use std::path::PathBuf;
 use std::time::Duration;
 use uuid::Uuid;
 
-pub const MAX_RUN_ATTEMPTS: u8 = 5;
-pub const RESTART_DELAY_SECS: u64 = 10;
-
 pub const RESTART_ENV_VAR: &str = "ACOLYTE_RESTART";
 pub const ID_ENV_VAR: &str = "ACOLYTE_ID";
 

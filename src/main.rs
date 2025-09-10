@@ -1,4 +1,4 @@
-use acolyte::env;
+use acolyte::{consts, env};
 use libc::{SIG_IGN, SIGHUP};
 use std::time::Duration;
 use std::{os::unix::process::CommandExt, panic, process, thread};
@@ -24,18 +24,18 @@ fn main() {
     if restart_count > 0 {
         info!(
             "Restarting Acolyte - waiting {} seconds (attempt {}/{})",
-            env::RESTART_DELAY_SECS,
+            consts::RESTART_DELAY_SECS,
             restart_count + 1,
-            env::MAX_RUN_ATTEMPTS
+            consts::MAX_RUN_ATTEMPTS
         );
-        thread::sleep(Duration::from_secs(env::RESTART_DELAY_SECS));
+        thread::sleep(Duration::from_secs(consts::RESTART_DELAY_SECS));
     }
 
     info!(
         "Starting Acolyte {} (attempt {}/{})",
         acolyte_id,
         restart_count + 1,
-        env::MAX_RUN_ATTEMPTS
+        consts::MAX_RUN_ATTEMPTS
     );
 
     let run_result = panic::catch_unwind(acolyte::run_acolyte);
@@ -44,10 +44,10 @@ fn main() {
     } else {
         let next_count = restart_count + 1;
 
-        if next_count >= env::MAX_RUN_ATTEMPTS {
+        if next_count >= consts::MAX_RUN_ATTEMPTS {
             error!(
                 "Maximum run attempts ({}) reached after crash. Exiting.",
-                env::MAX_RUN_ATTEMPTS
+                consts::MAX_RUN_ATTEMPTS
             );
             process::exit(1);
         }
