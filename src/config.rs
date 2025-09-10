@@ -4,27 +4,53 @@ use std::path::PathBuf;
 use std::time::Duration;
 use uuid::Uuid;
 
+pub struct JsonlToStdoutConfig {
+    pub prefix: String,
+}
+
+pub struct StatsDirConfig {
+    pub dir: PathBuf,
+    pub max_stats_entries: usize,
+}
+
+pub enum OutputMode {
+    JsonlToStdout(JsonlToStdoutConfig),
+    StatsDir(StatsDirConfig),
+}
 pub struct Config {
     pub sentry_dsn: Option<String>,
     pub acolyte_id: Uuid,
     pub cpu_sample_interval: Duration,
-    pub max_stats_entries: usize,
     pub stat_interval: Duration,
-    pub stats_dir: Option<PathBuf>,
     pub cluster_name: String,
+    pub output_mode: OutputMode,
 }
 
 impl Config {
-    pub fn from_env() -> Self {
-        Config {
+    pub fn from_env() -> anyhow::Result<Self> {
+        Ok(Config {
             sentry_dsn: get_sentry_dsn(),
             acolyte_id: get_or_create_acolyte_id(),
             cpu_sample_interval: get_cpu_sample_interval(),
-            max_stats_entries: get_max_stats_entries(),
             stat_interval: get_stat_interval(),
-            stats_dir: Some(get_stats_dir()),
+            output_mode: get_output_mode()?,
             cluster_name: get_cluster_name(),
+        })
+    }
+}
+
+fn get_output_mode() -> anyhow::Result<OutputMode> {
+    let output_mode = env::var("ACOLYTE_OUTPUT_MODE").ok();
+    match output_mode.as_deref() {
+        Some("stdout") => {
+            let prefix = env::var("ACOLYTE_OUTPUT_PREFIX").unwrap_or_else(|_| "".to_string());
+            Ok(OutputMode::JsonlToStdout(JsonlToStdoutConfig { prefix }))
         }
+        Some("dir") | None => Ok(OutputMode::StatsDir(StatsDirConfig {
+            dir: get_stats_dir(),
+            max_stats_entries: get_max_stats_entries(),
+        })),
+        Some(other) => Err(anyhow::anyhow!("Invalid ACOLYTE_OUTPUT_MODE: {other}.")),
     }
 }
 

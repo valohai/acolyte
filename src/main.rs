@@ -1,5 +1,6 @@
 use acolyte::config::Config;
 use acolyte::consts::{ID_ENV_VAR, MAX_RUN_ATTEMPTS, RESTART_DELAY_SECS};
+use anyhow::Context;
 use libc::{SIG_IGN, SIGHUP};
 use std::time::Duration;
 use std::{env, os::unix::process::CommandExt, panic, process, thread};
@@ -27,7 +28,7 @@ fn main() {
 
     init_logging();
 
-    let config = Config::from_env();
+    let config = Config::from_env().context("Failed to load config").unwrap();
     let sentry_guard = init_sentry(&config);
     if sentry_guard.is_some() {
         info!("Sentry initialized");

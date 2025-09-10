@@ -5,16 +5,33 @@
 Acolyte is a lightweight resource monitoring tool designed to collect statistics in containerized environments,
 particularly Kubernetes.
 
-Acolyte monitors CPU, memory, and GPU utilization and writes the data to JSON files for easy consumption by other
-services. It's designed to run alongside your application in the same container and built with compatibility in mind.
+Acolyte monitors CPU, memory, and GPU utilization and writes the data as JSON to rotated files or standard output for
+easy consumption by other services.
+It's designed to run alongside your application in the same container and built with compatibility in mind.
 
-Acolyte is configured through environment variables:
+Acolyte is configured through environment variables – by default, you don't necessarily have to configure anything.
+
+### General
 
 * `RUST_LOG`: log level e.g. debug; default: info
-* `ACOLYTE_STATS_DIR`: directory where stat files are written; default: /tmp/acolyte/stats
+* `ACOLYTE_NO_RESTART`: if set, Acolyte will not restart itself if it encounters an error; default: false
+
+### Collection
+
 * `ACOLYTE_STAT_INTERVAL_MS`: interval between stats collection in milliseconds; default: 5000
-* `ACOLYTE_MAX_STATS_ENTRIES`: maximum number of stat files to keep; default: 12
 * `ACOLYTE_CPU_SAMPLE_RATE_MS`: sample window for CPU usage in milliseconds; default: 100
+
+### Output
+
+* `ACOLYTE_OUTPUT_MODE`: `dir` (default): write to files in `ACOLYTE_STATS_DIR`, `stdout`: write to standard output
+
+#### Stats directory
+
+* `ACOLYTE_STATS_DIR`: directory where stat files are written; default: /tmp/acolyte/stats
+* `ACOLYTE_MAX_STATS_ENTRIES`: maximum number of stat files to keep; default: 12
+
+### Sentry
+
 * `SENTRY_DSN`: optional Sentry DSN for error reporting
 * `CLUSTER_NAME`: optional cluster identification for Sentry
 
