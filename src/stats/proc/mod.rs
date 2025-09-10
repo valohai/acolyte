@@ -3,12 +3,12 @@ mod memory;
 mod num_cpus;
 
 use crate::stats::{CpuUsageValue, SystemStatsSource};
-use std::io::{self};
-use std::path::PathBuf;
-
 use crate::utils::read_all_lines;
 #[cfg(test)]
 use mockall::automock;
+use std::io::{self};
+use std::path::PathBuf;
+use std::time::Duration;
 use tracing::debug;
 
 /// A source of system stats that reads values like `/proc` provides.
@@ -27,8 +27,8 @@ impl<P: ProcProvider> SystemStatsSource for ProcSource<P> {
         num_cpus::get_num_cpus(&self.provider)
     }
 
-    fn get_cpu_usage(&self) -> io::Result<CpuUsageValue> {
-        cpu_usage::get_cpu_usage(&self.provider)
+    fn get_cpu_usage(&self, sample_interval: Duration) -> io::Result<CpuUsageValue> {
+        cpu_usage::get_cpu_usage(&self.provider, sample_interval)
     }
 
     fn get_memory_usage_kb(&self) -> io::Result<u64> {

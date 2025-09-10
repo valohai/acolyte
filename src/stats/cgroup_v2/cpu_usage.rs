@@ -1,4 +1,3 @@
-use crate::env;
 use crate::stats::CpuUsageValue;
 use crate::stats::cgroup_v2::CgroupV2Provider;
 use std::io;
@@ -6,11 +5,14 @@ use std::time::{Duration, Instant};
 use tracing::{debug, warn};
 
 /// Get normalized CPU usage from cgroup v2
-pub fn get_cpu_usage<P: CgroupV2Provider>(provider: &P) -> io::Result<CpuUsageValue> {
+pub fn get_cpu_usage<P: CgroupV2Provider>(
+    provider: &P,
+    sample_interval: Duration,
+) -> io::Result<CpuUsageValue> {
     let start_time = Instant::now();
 
     let initial = get_cpu_usage_usec(provider)?;
-    std::thread::sleep(Duration::from_millis(env::get_cpu_sample_ms()));
+    std::thread::sleep(sample_interval);
     let current = get_cpu_usage_usec(provider)?;
 
     // wall-clock time between the two readings

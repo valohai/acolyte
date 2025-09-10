@@ -4,11 +4,11 @@ mod memory_current;
 mod memory_max;
 mod num_cpus;
 use crate::utils::{read_all_lines, read_first_line};
-use std::io::{self};
-use std::path::PathBuf;
-
 #[cfg(test)]
 use mockall::automock;
+use std::io::{self};
+use std::path::PathBuf;
+use std::time::Duration;
 
 pub struct CgroupV2Source<P: CgroupV2Provider> {
     provider: P,
@@ -31,8 +31,8 @@ impl<P: CgroupV2Provider> SystemStatsSource for CgroupV2Source<P> {
         num_cpus::get_num_cpus(&self.provider)
     }
 
-    fn get_cpu_usage(&self) -> io::Result<CpuUsageValue> {
-        cpu_usage::get_cpu_usage(&self.provider)
+    fn get_cpu_usage(&self, sample_interval: Duration) -> io::Result<CpuUsageValue> {
+        cpu_usage::get_cpu_usage(&self.provider, sample_interval)
     }
 
     fn get_memory_usage_kb(&self) -> io::Result<u64> {
