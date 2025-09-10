@@ -20,6 +20,16 @@ fn main() {
         warn!("Sentry NOT initialized");
     }
 
+    if env::is_no_restart() {
+        info!("No-restart mode enabled; running Acolyte without restart logic");
+        acolyte::run_acolyte();
+        process::exit(0);
+    } else {
+        run_with_restart(acolyte_id);
+    }
+}
+
+fn run_with_restart(acolyte_id: Uuid) {
     let restart_count = env::get_restart_count();
     if restart_count > 0 {
         info!(
