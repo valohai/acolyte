@@ -111,13 +111,7 @@ fn init_logging() {
 fn init_sentry(config: &Config) -> Option<sentry::ClientInitGuard> {
     let release = sentry::release_name!();
     let dsn = config.sentry_dsn.clone();
-    let guard = sentry::init((
-        dsn,
-        sentry::ClientOptions {
-            release,
-            ..Default::default()
-        },
-    ));
+    let guard = sentry::init((dsn, sentry::ClientOptions::new().maybe_release(release)));
 
     sentry::configure_scope(|scope| {
         scope.set_tag("acolyte_id", config.acolyte_id);
