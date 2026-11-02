@@ -2,10 +2,12 @@ use acolyte::config::Config;
 use acolyte::consts::{ID_ENV_VAR, MAX_RUN_ATTEMPTS, RESTART_DELAY_SECS};
 use anyhow::Context;
 use libc::{SIG_IGN, SIGHUP};
+use sentry_tracing::{BreadcrumbLayer, ErrorLayer, SpanLayer};
 use std::time::Duration;
 use std::{env, os::unix::process::CommandExt, panic, process, thread};
-use tracing::{error, info, warn};
+use tracing::{Level, error, info, warn};
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::filter::{LevelFilter, filter_fn};
 use tracing_subscriber::prelude::*;
 
 const NO_RESTART_ENV_VAR: &str = "ACOLYTE_NO_RESTART";
@@ -104,7 +106,11 @@ fn init_logging() {
     tracing_subscriber::registry()
         .with(filter)
         .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
+        .with(SpanLayer::new().with_filter(LevelFilter::INFO))
+        .with(BreadcrumbLayer::new().with_filter(filter_fn(|metadata| {
+            matches!(*metadata.level(), Level::WARN | Level::INFO)
+        })))
+        .with(ErrorLayer::new().with_filter(LevelFilter::ERROR))
         .init();
 }
 
